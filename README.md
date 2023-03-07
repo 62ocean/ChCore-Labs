@@ -23,4 +23,8 @@ This is the repository of ChCore labs in SE315, 2022 Spring.
 ## Other
 
 - Press `Ctrl+a x` to quit QEMU
-- Press `Ctrl+d` to quit GDB
+- Press `Ctrl+d` to quit GDB  
+
+# lab1
+
+
