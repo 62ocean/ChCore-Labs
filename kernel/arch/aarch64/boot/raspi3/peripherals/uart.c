@@ -77,6 +77,15 @@ static void early_uart_send(unsigned int c)
 void uart_send_string(char *str)
 {
         /* LAB 1 TODO 3 BEGIN */
-
+        while (1) {
+                if (early_uart_lsr() & 0x20)
+                        break;
+        }
+        int pos = 0;
+        while (str[pos] != '\0') {
+             early_put32(AUX_MU_IO_REG, str[pos]);   
+             ++pos;
+        }
+        
         /* LAB 1 TODO 3 END */
 }
