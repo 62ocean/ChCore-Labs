@@ -28,10 +28,16 @@ static inline void init_list_head(struct list_head *list)
 
 static inline void list_add(struct list_head *new, struct list_head *head)
 {
+        // if (head == NULL) kdebug("HEAD NULL\n");
+        // kdebug("111\n");
         new->next = head->next;
+        // kdebug("111\n");
         new->prev = head;
+        // kdebug("111\n");
         head->next->prev = new;
+        // kdebug("111\n");
         head->next = new;
+        // kdebug("111\n");
 }
 
 static inline void list_append(struct list_head *new, struct list_head *head)

@@ -80,8 +80,6 @@ BEGIN_FUNC(arm64_elX_to_el1)
 	mov x9, SPSR_ELX_DAIF | SPSR_ELX_EL1H
 	msr spsr_el3, x9
 
-	isb
-	eret
 	/* LAB 1 TODO 2 END */
 
 .Lin_el2:
