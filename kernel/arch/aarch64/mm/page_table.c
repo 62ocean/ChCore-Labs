@@ -136,6 +136,7 @@ static int get_next_ptp(ptp_t *cur_ptp, u32 level, vaddr_t va, ptp_t **next_ptp,
                          *       set the attr `is_valid`, `is_table` and `next_table_addr` of new pte
                          */
                         new_ptp = get_pages(0);
+                        memset(new_ptp, 0, PAGE_SIZE);
                         //页表中需存储物理地址
                         new_ptp_paddr = virt_to_phys(new_ptp);
 
@@ -233,7 +234,9 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
         if (type == -ENOMAPPING) return -ENOMAPPING;
         if (type == BLOCK_PTP) {
                int offset = GET_VA_OFFSET_L1(va); 
-               *pa = pte->l1_block.pfn + offset;
+               paddr_t paddr = pte->l1_block.pfn;
+               *pa = (paddr << 28) + offset;
+        //        kdebug("%lx\n", *pa);
                *entry = pte;
                return 0;
         }
@@ -242,7 +245,9 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
         if (type == -ENOMAPPING) return -ENOMAPPING;
         if (type == BLOCK_PTP) {
                int offset = GET_VA_OFFSET_L2(va); 
-               *pa = pte->l2_block.pfn + offset;
+               paddr_t paddr = pte->l2_block.pfn;
+        //        paddr = (paddr << 20) + offset;
+               *pa = (paddr << 20) + offset;
                *entry = pte;
                return 0;
         }
@@ -270,33 +275,33 @@ int map_range_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
          */
         size_t i;
         for (i = 0; i < len; i += PAGE_SIZE) {
-                kdebug("i: %lld\n", i);
+                // kdebug("i: %lld\n", i);
                 ptp_t *page = pgtbl;
                 pte_t *pte;
                 int type;
 
                 type = get_next_ptp(page, 0, va + i, &page, &pte, 1);
-                kdebug("111");
+                // kdebug("111");
 
                 type = get_next_ptp(page, 1, va + i, &page, &pte, 1);
-                kdebug("222");
+                // kdebug("222");
 
                 type = get_next_ptp(page, 2, va + i, &page, &pte, 1);
-                kdebug("333");
+                // kdebug("333");
 
 
                 int index = GET_L3_INDEX(va + i);
-                kdebug("index: %d ",index);
+                // kdebug("index: %d ",index);
                 pte = &(page->ent[index]);
-                kdebug("123");
+                // kdebug("123");
                 pte->l3_page.is_valid = 1;
                 pte->l3_page.is_page = 1;
                 pte->l3_page.pfn = pa + i;
-                kdebug("123");
+                // kdebug("123");
                 set_pte_flags(pte, flags, USER_PTE);
-                kdebug("444");
+                // kdebug("444");
         }
-        kdebug("i: %lld\n", i / PAGE_SIZE);
+        // kdebug("i: %lld\n", i / PAGE_SIZE);
 
         return 0;
 
@@ -343,9 +348,10 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
 {
         /* LAB 2 TODO 4 BEGIN */
         size_t i;
-        kdebug("debug!!!\n");
+        // kdebug("debug!!!\n");
         // kdebug("iii: %d\n", len - PAGE_SIZE * 512 * 512);
-        // kdebug("iii: %d\n", len - PAGE_SIZE * 512 * 512);
+        // kdebug("len: %lx\n", len);
+        // kdebug("iii: %lx\n", len - PAGE_SIZE * 512 * 512);
         for (i = 0; i <= len - PAGE_SIZE * 512 * 512; i += PAGE_SIZE * 512 * 512) {
                 ptp_t *page = pgtbl;
                 pte_t *pte;
@@ -358,10 +364,11 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
                 pte = &page->ent[index];
                 pte->l1_block.is_valid = 1;
                 pte->l1_block.is_table = 0;
-                pte->l1_block.pfn = pa + i;
+                pte->l1_block.pfn = (pa + i) >> 28;
+                // kdebug("pa: %lx, shift pa: %lx\n", pa+i,pte->l1_block.pfn);
                 set_pte_flags(pte, flags, USER_PTE);
         }
-        kdebug("i: %d\n", i);
+        kdebug("i: %lx\n", i);
 
         for (; i <= len - PAGE_SIZE * 512; i += PAGE_SIZE * 512) {
                 ptp_t *page = pgtbl;
@@ -376,10 +383,11 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
                 pte = &page->ent[index];
                 pte->l2_block.is_valid = 1;
                 pte->l2_block.is_table = 0;
-                pte->l2_block.pfn = pa + i;
+                pte->l2_block.pfn = (pa + i) >> 20;
+                // kdebug("pa: %lx, shift pa: %lx\n", pa+i,pte->l2_block.pfn);
                 set_pte_flags(pte, flags, USER_PTE);
         }
-        kdebug("i: %d\n", i);
+        // kdebug("i: %lx\n", i);
 
         for (; i < len; i += PAGE_SIZE) {
                 ptp_t *page = pgtbl;
@@ -397,9 +405,11 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
                 pte->l3_page.is_valid = 1;
                 pte->l3_page.is_page = 1;
                 pte->l3_page.pfn = pa + i;
+                // kdebug("pa: %lx\n", pa+i);
                 set_pte_flags(pte, flags, USER_PTE);
         }
-        kdebug("i: %d\n", i);
+        // kdebug("i: %lx\n", i);
+        // kdebug("len: %lx\n", len);
 
         return 0;
         /* LAB 2 TODO 4 END */
@@ -534,35 +544,35 @@ void lab2_test_page_table(void)
                 ret = map_range_in_pgtbl(
                         pgtbl, 0x100000000, 0x100000000, len, flags);
                 lab_assert(ret == 0);
-                kdebug("ok: %d\n", ok);
+                // kdebug("ok: %d\n", ok);
                 ret = map_range_in_pgtbl(pgtbl,
                                          0x100000000 + len,
                                          0x100000000 + len,
                                          len,
                                          flags);
                 lab_assert(ret == 0);
-                kdebug("ok: %d\n", ok);
+                // kdebug("ok: %d\n", ok);
 
                 for (vaddr_t va = 0x100000000; va < 0x100000000 + len * 2;
                      va += 5 * PAGE_SIZE + 0x100) {
                         ret = query_in_pgtbl(pgtbl, va, &pa, &pte);
                         lab_assert(ret == 0 && pa == va);
                 }
-                kdebug("ok: %d\n", ok);
+                // kdebug("ok: %d\n", ok);
 
                 ret = unmap_range_in_pgtbl(pgtbl, 0x100000000, len);
                 lab_assert(ret == 0);
-                kdebug("ok: %d\n", ok);
+                // kdebug("ok: %d\n", ok);
                 ret = unmap_range_in_pgtbl(pgtbl, 0x100000000 + len, len);
                 lab_assert(ret == 0);
-                kdebug("ok: %d\n", ok);
+                // kdebug("ok: %d\n", ok);
 
                 for (vaddr_t va = 0x100000000; va < 0x100000000 + len;
                      va += 5 * PAGE_SIZE + 0x100) {
                         ret = query_in_pgtbl(pgtbl, va, &pa, &pte);
                         lab_assert(ret == -ENOMAPPING);
                 }
-                kdebug("ok: %d\n", ok);
+                // kdebug(zzzzzz"ok: %d\n", ok);
 
                 free_page_table(pgtbl);
                 lab_check(ok, "Map & unmap huge range");
@@ -582,29 +592,30 @@ void lab2_test_page_table(void)
                 ret = map_range_in_pgtbl_huge(
                         pgtbl, 0x100000000, 0x100000000, len, flags);
                 lab_assert(ret == 0);
-                // kdebug("ok: %d\n", ok);
+                kdebug("ok: %d\n", ok);
                 used_mem =
                         free_mem - get_free_mem_size_from_buddy(&global_mem[0]);
                 lab_assert(used_mem < PAGE_SIZE * 8);
-                // kdebug("ok: %d\n", ok);
+                kdebug("ok: %d\n", ok);
 
                 for (vaddr_t va = 0x100000000; va < 0x100000000 + len;
                      va += 5 * PAGE_SIZE + 0x100) {
                         ret = query_in_pgtbl(pgtbl, va, &pa, &pte);
+                        // kdebug("va: %lx, pa: %lx\n", va, pa);
                         lab_assert(ret == 0 && pa == va);
                 }
-                // kdebug("ok: %d\n", ok);
+                kdebug("ok: %d\n", ok);
 
                 ret = unmap_range_in_pgtbl_huge(pgtbl, 0x100000000, len);
                 lab_assert(ret == 0);
-                // kdebug("ok: %d\n", ok);
+                kdebug("ok: %d\n", ok);
 
                 for (vaddr_t va = 0x100000000; va < 0x100000000 + len;
                      va += 5 * PAGE_SIZE + 0x100) {
                         ret = query_in_pgtbl(pgtbl, va, &pa, &pte);
                         lab_assert(ret == -ENOMAPPING);
                 }
-                // kdebug("ok: %d\n", ok);
+                kdebug("ok: %d\n", ok);
 
                 free_page_table(pgtbl);
                 lab_check(ok, "Map & unmap with huge page support");
