@@ -368,7 +368,7 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
                 // kdebug("pa: %lx, shift pa: %lx\n", pa+i,pte->l1_block.pfn);
                 set_pte_flags(pte, flags, USER_PTE);
         }
-        kdebug("i: %lx\n", i);
+        // kdebug("i: %lx\n", i);
 
         for (; i <= len - PAGE_SIZE * 512; i += PAGE_SIZE * 512) {
                 ptp_t *page = pgtbl;
