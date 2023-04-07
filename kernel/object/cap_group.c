@@ -265,7 +265,7 @@ int sys_create_cap_group(u64 pid, u64 cap_group_name, u64 name_len, u64 pcid)
 
         /* 2st cap is vmspace */
         /* LAB 3 TODO BEGIN */
-        vmspace = obj_alloc(TYPE_PMO, sizeof(struct vmspace));
+        vmspace = obj_alloc(TYPE_VMSPACE, sizeof(struct vmspace));
         /* LAB 3 TODO END */
         if (!vmspace) {
                 r = -ENOMEM;
@@ -324,7 +324,7 @@ struct cap_group *create_root_cap_group(char *name, size_t name_len)
         /* LAB 3 TODO END */
         BUG_ON(slot_id != CAP_GROUP_OBJ_ID);
         /* LAB 3 TODO BEGIN */
-        vmspace = obj_alloc(TYPE_PMO, sizeof(*vmspace));
+        vmspace = obj_alloc(TYPE_VMSPACE, sizeof(*vmspace));
         /* LAB 3 TODO END */
         BUG_ON(!vmspace);
         // ???

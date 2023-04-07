@@ -235,7 +235,7 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
         if (type == BLOCK_PTP) {
                int offset = GET_VA_OFFSET_L1(va); 
                paddr_t paddr = pte->l1_block.pfn;
-               *pa = (paddr << 28) + offset;
+               *pa = (paddr << 30) + offset;
         //        kdebug("%lx\n", *pa);
                *entry = pte;
                return 0;
@@ -247,7 +247,7 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
                int offset = GET_VA_OFFSET_L2(va); 
                paddr_t paddr = pte->l2_block.pfn;
         //        paddr = (paddr << 20) + offset;
-               *pa = (paddr << 20) + offset;
+               *pa = (paddr << 21) + offset;
                *entry = pte;
                return 0;
         }
@@ -255,7 +255,8 @@ int query_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t *pa, pte_t **entry)
         type = get_next_ptp(page, 3, va, &page, &pte, 0);
         if (type == -ENOMAPPING) return -ENOMAPPING;
         int offset = GET_VA_OFFSET_L3(va);
-        *pa = pte->l3_page.pfn + offset;
+        paddr_t paddr = pte->l3_page.pfn;
+        *pa = (paddr << 12) + offset;
         *entry = pte;
 
         return 0;
@@ -274,6 +275,11 @@ int map_range_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
          * mapped.
          */
         size_t i;
+
+        //将虚拟页映射起始地址移到一个物理页的起始位置
+        len += va & (0xfff);
+        va &= (~(0xfff));
+
         for (i = 0; i < len; i += PAGE_SIZE) {
                 // kdebug("i: %lld\n", i);
                 ptp_t *page = pgtbl;
@@ -296,7 +302,7 @@ int map_range_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
                 // kdebug("123");
                 pte->l3_page.is_valid = 1;
                 pte->l3_page.is_page = 1;
-                pte->l3_page.pfn = pa + i;
+                pte->l3_page.pfn = (pa + i) >> 12;
                 // kdebug("123");
                 set_pte_flags(pte, flags, USER_PTE);
                 // kdebug("444");
@@ -364,7 +370,7 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
                 pte = &page->ent[index];
                 pte->l1_block.is_valid = 1;
                 pte->l1_block.is_table = 0;
-                pte->l1_block.pfn = (pa + i) >> 28;
+                pte->l1_block.pfn = (pa + i) >> 30;
                 // kdebug("pa: %lx, shift pa: %lx\n", pa+i,pte->l1_block.pfn);
                 set_pte_flags(pte, flags, USER_PTE);
         }
@@ -383,7 +389,7 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
                 pte = &page->ent[index];
                 pte->l2_block.is_valid = 1;
                 pte->l2_block.is_table = 0;
-                pte->l2_block.pfn = (pa + i) >> 20;
+                pte->l2_block.pfn = (pa + i) >> 21;
                 // kdebug("pa: %lx, shift pa: %lx\n", pa+i,pte->l2_block.pfn);
                 set_pte_flags(pte, flags, USER_PTE);
         }
@@ -404,7 +410,7 @@ int map_range_in_pgtbl_huge(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
                 pte = &page->ent[index];
                 pte->l3_page.is_valid = 1;
                 pte->l3_page.is_page = 1;
-                pte->l3_page.pfn = pa + i;
+                pte->l3_page.pfn = (pa + i) >> 12;
                 // kdebug("pa: %lx\n", pa+i);
                 set_pte_flags(pte, flags, USER_PTE);
         }

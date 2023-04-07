@@ -108,7 +108,8 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
                         seg_sz = elf->p_headers[i].p_memsz;
                         p_vaddr = elf->p_headers[i].p_vaddr;
                         /* LAB 3 TODO BEGIN */
-
+                        // ret = create_pmo(seg_sz, PMO_DATA, cap_group, &pmo);
+                        // ret = vmspace_map_range(vmspace, p_vaddr, seg_sz, )
                         /* LAB 3 TODO END */
                         BUG_ON(ret != 0);
                 }
