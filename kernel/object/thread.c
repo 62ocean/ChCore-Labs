@@ -201,7 +201,7 @@ static int __create_root_thread(struct cap_group *cap_group, u64 stack_base,
         BUG_ON(ret != 0);
 
         /* Add the thread into the thread_list of the cap_group */
-        list_add(&thread->node, &cap_group->thread_list);
+        list_add(&thread->node, &cap_group->thread_list, false);
         cap_group->thread_cnt += 1;
 
         /* Allocate the cap for the init thread */
@@ -308,7 +308,7 @@ static int create_thread(struct cap_group *cap_group, u64 stack, u64 pc,
         if (ret != 0)
                 goto out_free_obj;
 
-        list_add(&thread->node, &cap_group->thread_list);
+        list_add(&thread->node, &cap_group->thread_list, false);
         cap_group->thread_cnt += 1;
 
         arch_set_thread_arg0(thread, arg);

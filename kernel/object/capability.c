@@ -44,6 +44,7 @@ void *obj_alloc(u64 type, u64 size)
 
         total_size = sizeof(*object) + size;
         object = kzalloc(total_size);
+        kdebug("object1: %lx\n", object);
         if (!object)
                 return NULL;
 
@@ -81,27 +82,38 @@ int cap_alloc(struct cap_group *cap_group, void *obj, u64 rights)
         struct object *object;
         struct object_slot *slot;
         int r, slot_id;
+        kdebug("111\n");
 
         object = container_of(obj, struct object, opaque);
-
+        kdebug("object2: %lx\n", object);
+        kdebug("111\n");
         slot_id = alloc_slot_id(cap_group);
+        kdebug("slot_id111: %d\n", slot_id);
         if (slot_id < 0) {
                 r = -ENOMEM;
                 goto out_table;
         }
-
+        kdebug("111\n");
         slot = kmalloc(sizeof(*slot));
         if (!slot) {
                 r = -ENOMEM;
                 goto out_free_slot_id;
         }
+        kdebug("111\n");
         slot->slot_id = slot_id;
+        kdebug("111\n");
         slot->cap_group = cap_group;
         slot->isvalid = true;
         slot->rights = rights;
         slot->object = object;
-        list_add(&slot->copies, &object->copies_head);
-
+        kdebug("111\n");
+        
+        kdebug("%lx\n", &slot->copies);
+        kdebug("%lx\n", &object->copies_head);
+        // init_list_head(&object->copies_head);
+        list_add(&slot->copies, &object->copies_head, true);
+        kdebug("111\n");
+        kdebug("object->refcount: %d\n", object->refcount);
         BUG_ON(object->refcount != 0);
         object->refcount = 1;
 
@@ -204,7 +216,7 @@ int cap_copy(struct cap_group *src_cap_group, struct cap_group *dest_cap_group,
         dest_slot->isvalid = true;
         dest_slot->object = src_slot->object;
 
-        list_add(&dest_slot->copies, &src_slot->copies);
+        list_add(&dest_slot->copies, &src_slot->copies, false);
 
         install_slot(dest_cap_group, dest_slot_id, dest_slot);
         return dest_slot_id;

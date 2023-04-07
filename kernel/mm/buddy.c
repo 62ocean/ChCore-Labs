@@ -112,7 +112,7 @@ static struct page *split_page(struct phys_mem_pool *pool, u64 order,
                 buddy_page->order = page->order;
 
                 struct list_head *buddy_free_list = &(pool->free_lists[buddy_page->order].free_list);
-                list_add(&buddy_page->node, buddy_free_list);
+                list_add(&buddy_page->node, buddy_free_list, false);
                 pool->free_lists[buddy_page->order].nr_free++;
         }
 
@@ -210,7 +210,7 @@ void buddy_free_pages(struct phys_mem_pool *pool, struct page *page)
         // kdebug("free order: %d\n", order);
         free_list = &(pool->free_lists[order].free_list);
         // kdebug("222\n");
-        list_add(&page->node, free_list);
+        list_add(&page->node, free_list, false);
         pool->free_lists[order].nr_free++;
         // kdebug("333\n");
 

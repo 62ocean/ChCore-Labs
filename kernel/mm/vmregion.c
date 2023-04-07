@@ -86,7 +86,7 @@ static int add_vmr_to_vmspace(struct vmspace *vmspace, struct vmregion *vmr)
                 return -EINVAL;
         }
 
-        list_add(&(vmr->node), &(vmspace->vmr_list));
+        list_add(&(vmr->node), &(vmspace->vmr_list), false);
         return 0;
 }
 

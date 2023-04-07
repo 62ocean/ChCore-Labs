@@ -17,6 +17,7 @@
 
 // declarations of fault handlers
 int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr);
+// extern void backtrace(void);
 
 static inline vaddr_t get_fault_addr()
 {
@@ -59,6 +60,7 @@ void do_page_fault(u64 esr, u64 fault_ins_addr)
                          * extern void backtrace(void);
                          * backtrace();
                          */
+                        // backtrace();
 
                         BUG_ON(ret != 0);
                 }
