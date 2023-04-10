@@ -207,13 +207,14 @@ int vmspace_map_range(struct vmspace *vmspace, vaddr_t va, size_t len,
 {
         struct vmregion *vmr;
         int ret;
-
+        // kdebug("kkk\n");
         /* Check whether the pmo type is supported */
         BUG_ON((pmo->type != PMO_DATA) && (pmo->type != PMO_DATA_NOCACHE)
                && (pmo->type != PMO_ANONYM) && (pmo->type != PMO_DEVICE)
                && (pmo->type != PMO_SHM) && (pmo->type != PMO_FORBID));
 
         /* Align a vmr to PAGE_SIZE */
+        // kdebug("kkk\n");
         va = ROUND_DOWN(va, PAGE_SIZE);
         if (len < PAGE_SIZE)
                 len = PAGE_SIZE;
@@ -226,6 +227,7 @@ int vmspace_map_range(struct vmspace *vmspace, vaddr_t va, size_t len,
         vmr->start = va;
         vmr->size = len;
         vmr->perm = flags;
+        // kdebug("kkk\n");
         if (unlikely(pmo->type == PMO_DEVICE)) {
                 vmr->perm |= VMR_DEVICE;
         } else if (unlikely(pmo->type == PMO_DATA_NOCACHE)) {
@@ -233,9 +235,11 @@ int vmspace_map_range(struct vmspace *vmspace, vaddr_t va, size_t len,
         }
 
         /* Currently, one vmr has exactly one pmo */
+        // kdebug("kkk\n");
         vmr->pmo = pmo;
 
         ret = add_vmr_to_vmspace(vmspace, vmr);
+        // kdebug("kkk\n");
 
         if (ret < 0) {
                 kwarn("add_vmr_to_vmspace fails\n");
@@ -257,6 +261,7 @@ int vmspace_map_range(struct vmspace *vmspace, vaddr_t va, size_t len,
         if ((pmo->type == PMO_DATA) || (pmo->type == PMO_DATA_NOCACHE)
             || (pmo->type == PMO_DEVICE))
                 fill_page_table(vmspace, vmr);
+        // kdebug("kkk\n");
 
         /* On success */
         return 0;

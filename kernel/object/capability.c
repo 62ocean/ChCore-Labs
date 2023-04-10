@@ -44,7 +44,7 @@ void *obj_alloc(u64 type, u64 size)
 
         total_size = sizeof(*object) + size;
         object = kzalloc(total_size);
-        kdebug("object1: %lx\n", object);
+        // kdebug("object1: %lx\n", object);
         if (!object)
                 return NULL;
 
@@ -82,38 +82,38 @@ int cap_alloc(struct cap_group *cap_group, void *obj, u64 rights)
         struct object *object;
         struct object_slot *slot;
         int r, slot_id;
-        kdebug("111\n");
+        // kdebug("111\n");
 
         object = container_of(obj, struct object, opaque);
-        kdebug("object2: %lx\n", object);
-        kdebug("111\n");
+        // kdebug("object2: %lx\n", object);
+        // kdebug("111\n");
         slot_id = alloc_slot_id(cap_group);
-        kdebug("slot_id111: %d\n", slot_id);
+        // kdebug("slot_id111: %d\n", slot_id);
         if (slot_id < 0) {
                 r = -ENOMEM;
                 goto out_table;
         }
-        kdebug("111\n");
+        // kdebug("111\n");
         slot = kmalloc(sizeof(*slot));
         if (!slot) {
                 r = -ENOMEM;
                 goto out_free_slot_id;
         }
-        kdebug("111\n");
+        // kdebug("111\n");
         slot->slot_id = slot_id;
-        kdebug("111\n");
+        // kdebug("111\n");
         slot->cap_group = cap_group;
         slot->isvalid = true;
         slot->rights = rights;
         slot->object = object;
-        kdebug("111\n");
+        // kdebug("111\n");
         
-        kdebug("%lx\n", &slot->copies);
-        kdebug("%lx\n", &object->copies_head);
+        // kdebug("%lx\n", &slot->copies);
+        // kdebug("%lx\n", &object->copies_head);
         // init_list_head(&object->copies_head);
         list_add(&slot->copies, &object->copies_head, true);
-        kdebug("111\n");
-        kdebug("object->refcount: %d\n", object->refcount);
+        // kdebug("111\n");
+        // kdebug("object->refcount: %d\n", object->refcount);
         BUG_ON(object->refcount != 0);
         object->refcount = 1;
 
