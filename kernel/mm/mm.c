@@ -43,7 +43,6 @@ void mm_init(void)
 
         physmem_map_num = 0;
         parse_mem_map();
-
         if (physmem_map_num == 1) {
                 free_mem_start = phys_to_virt(physmem_map[0][0]);
                 free_mem_end = phys_to_virt(physmem_map[0][1]);
