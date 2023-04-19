@@ -276,10 +276,6 @@ int map_range_in_pgtbl(void *pgtbl, vaddr_t va, paddr_t pa, size_t len,
          */
         size_t i;
 
-        //将虚拟页映射起始地址移到一个物理页的起始位置
-        len += va & (0xfff);
-        va &= (~(0xfff));
-
         for (i = 0; i < len; i += PAGE_SIZE) {
                 // kdebug("i: %lld\n", i);
                 ptp_t *page = pgtbl;

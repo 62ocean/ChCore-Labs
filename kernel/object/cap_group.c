@@ -237,7 +237,6 @@ int sys_create_cap_group(u64 pid, u64 cap_group_name, u64 name_len, u64 pcid)
         /* LAB 3 TODO BEGIN */
         /* cap current cap_group */
         new_cap_group = obj_alloc(TYPE_CAP_GROUP, sizeof(struct cap_group));
-        cap_group_init(new_cap_group, 10000, pid);
         /* LAB 3 TODO END */
 
         if (!new_cap_group) {
@@ -245,7 +244,7 @@ int sys_create_cap_group(u64 pid, u64 cap_group_name, u64 name_len, u64 pcid)
                 goto out_fail;
         }
         /* LAB 3 TODO BEGIN */
-
+        cap_group_init(new_cap_group, 10000, pid);
         /* LAB 3 TODO END */
 
         cap = cap_alloc(current_cap_group, new_cap_group, 0);
@@ -310,13 +309,12 @@ struct cap_group *create_root_cap_group(char *name, size_t name_len)
         /* LAB 3 TODO BEGIN */
 
         cap_group = obj_alloc(TYPE_CAP_GROUP, sizeof(*cap_group));
-        cap_group_init(cap_group, 10000, ROOT_PID);
         // size应该是多大？
 
         /* LAB 3 TODO END */
         BUG_ON(!cap_group);
         /* LAB 3 TODO BEGIN */
-
+        cap_group_init(cap_group, 10000, ROOT_PID);
         slot_id = cap_alloc(cap_group, cap_group, 0);
         // 第三个参数代表什么？
 

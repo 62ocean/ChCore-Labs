@@ -26,6 +26,7 @@
 
 #include "thread_env.h"
 
+// 初始化thread参数，创建内核栈，设置上下文
 static int thread_init(struct thread *thread, struct cap_group *cap_group,
                        u64 stack, u64 pc, u32 prio, u32 type, s32 aff)
 {
@@ -109,7 +110,6 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
                         seg_sz = elf->p_headers[i].p_memsz;
                         p_vaddr = elf->p_headers[i].p_vaddr;
                         /* LAB 3 TODO BEGIN */
-                        kdebug("p_vaddr: %lx\n", p_vaddr);
                         // 虚拟地址页对齐
                         vaddr_t vaddr_start = ROUND_DOWN(p_vaddr, PAGE_SIZE);
                         vaddr_t vaddr_end = ROUND_UP(p_vaddr + seg_sz, PAGE_SIZE);
@@ -127,7 +127,6 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
 
                         // 添加vmregion并关联到上述pmo（即添加虚拟地址空间）
                         ret = vmspace_map_range(vmspace, p_vaddr, seg_sz, flags, pmo);
-                        // kdebug("ret:%d\n",ret);
                         /* LAB 3 TODO END */
                         BUG_ON(ret != 0);
                 }
@@ -204,6 +203,7 @@ static int __create_root_thread(struct cap_group *cap_group, u64 stack_base,
         /* Fill the parameter of the thread struct */
         pc = load_binary(cap_group, init_vmspace, bin_start, &meta);
         stack = stack_base + stack_size;
+        // 为什么要有stack_base? 栈不是增长的吗？
 
         /* Allocate a physical for the main stack for prepare_env */
         kva = (vaddr_t)get_pages(0);
@@ -326,6 +326,7 @@ static int create_thread(struct cap_group *cap_group, u64 stack, u64 pc,
         if (ret != 0)
                 goto out_free_obj;
 
+        // 将新创建的线程添加到进程的线程列表中
         list_add(&thread->node, &cap_group->thread_list, false);
         cap_group->thread_cnt += 1;
 
@@ -417,6 +418,12 @@ void sys_thread_exit(void)
         printk("\nBack to kernel.\n");
 #endif
         /* LAB 3 TODO BEGIN */
+        struct thread *thread = current_thread;
+        
+        thread->thread_ctx->thread_exit_state = TE_EXITED;
+        thread->thread_ctx->state = TS_EXIT;
+        // thread_deinit(thread);
+        // 需要检查进程中是否还包含线程并退出吗？
 
         /* LAB 3 TODO END */
         printk("Lab 3 hang.\n");

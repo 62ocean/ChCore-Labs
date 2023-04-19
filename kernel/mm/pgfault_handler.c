@@ -35,6 +35,8 @@ int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
         u64 index;
         int ret = 0;
 
+        // kdebug("fault_addr: %lx\n", fault_addr);
+
         vmr = find_vmr_for_va(vmspace, fault_addr);
         if (vmr == NULL) {
                 printk("handle_trans_fault: no vmr found for va 0x%lx!\n",
@@ -65,15 +67,21 @@ int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
                 /* Get the index in the pmo radix for faulting addr */
                 index = offset / PAGE_SIZE;
 
+                // kdebug("fault_addr: %lx index: %lx\n", fault_addr, index);
                 fault_addr = ROUND_DOWN(fault_addr, PAGE_SIZE);
+                // kdebug("fault_addr: %lx index: %lx\n", fault_addr, index);
                 /* LAB 3 TODO BEGIN */
-
+                pa = get_page_from_pmo(pmo, index);
+                // kdebug("pa: %lx\n",pa);
                 /* LAB 3 TODO END */
                 if (pa == 0) {
                         /* Not committed before. Then, allocate the physical
                          * page. */
                         /* LAB 3 TODO BEGIN */
-
+                        pa = virt_to_phys((vaddr_t)get_pages(0));
+                        // kdebug("pa: %lx\n", pa);
+                        commit_page_to_pmo(pmo, index, pa);
+                        map_range_in_pgtbl(vmspace->pgtbl, fault_addr, pa, PAGE_SIZE, perm);
                         /* LAB 3 TODO END */
 #ifdef CHCORE_LAB3_TEST
                         printk("Test: Test: Successfully map for pa 0\n");
@@ -101,7 +109,7 @@ int handle_trans_fault(struct vmspace *vmspace, vaddr_t fault_addr)
                          * Repeated mapping operations are harmless.
                          */
                         /* LAB 3 TODO BEGIN */
-
+                        map_range_in_pgtbl(vmspace->pgtbl, fault_addr, pa, PAGE_SIZE, perm);
                         /* LAB 3 TODO END */
 #ifdef CHCORE_LAB3_TEST
                         printk("Test: Test: Successfully map for pa not 0\n");

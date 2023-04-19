@@ -77,6 +77,7 @@ void obj_free(void *obj)
         kfree(object);
 }
 
+// 寻找空闲的slot_id，为obj分配新slot并添加到该cap_group中，在obj中记录该slot
 int cap_alloc(struct cap_group *cap_group, void *obj, u64 rights)
 {
         struct object *object;
