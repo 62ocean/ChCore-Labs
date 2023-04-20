@@ -113,13 +113,15 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
                         /* LAB 3 TODO BEGIN */
                         // 虚拟地址页对齐
                         vaddr_t vaddr_start = ROUND_DOWN(p_vaddr, PAGE_SIZE);
-                        vaddr_t vaddr_end = ROUND_UP(p_vaddr + seg_sz, PAGE_SIZE);
+                        vaddr_t vaddr_end =
+                                ROUND_UP(p_vaddr + seg_sz, PAGE_SIZE);
                         seg_map_sz = vaddr_end - vaddr_start;
                         // 创建所需大小的pmo，PMO_DATA类型马上分配物理内存空间
                         ret = create_pmo(seg_map_sz, PMO_DATA, cap_group, &pmo);
                         // 将elf文件中的内容拷贝到物理内存空间中
                         u64 start_offset = p_vaddr - vaddr_start;
-                        char *pmo_start = phys_to_virt(pmo->start) + start_offset;
+                        char *pmo_start =
+                                phys_to_virt(pmo->start) + start_offset;
                         char *seg_start = bin + elf->p_headers[i].p_offset;
                         u64 copy_size = elf->p_headers[i].p_filesz;
                         memcpy(pmo_start, seg_start, copy_size);
@@ -127,7 +129,8 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
                         flags = PFLAGS2VMRFLAGS(elf->p_headers[i].p_flags);
 
                         // 添加vmregion并关联到上述pmo（即添加虚拟地址空间）
-                        ret = vmspace_map_range(vmspace, p_vaddr, seg_sz, flags, pmo);
+                        ret = vmspace_map_range(
+                                vmspace, p_vaddr, seg_sz, flags, pmo);
                         /* LAB 3 TODO END */
                         BUG_ON(ret != 0);
                 }
@@ -215,7 +218,7 @@ static int __create_root_thread(struct cap_group *cap_group, u64 stack_base,
 
         prepare_env((char *)kva, stack, &meta, bin_name);
         stack -= ENV_SIZE;
-        kdebug("pc:%lx\n",pc);
+        kdebug("pc:%lx\n", pc);
         ret = thread_init(thread, cap_group, stack, pc, prio, type, aff);
         BUG_ON(ret != 0);
 
@@ -419,9 +422,8 @@ void sys_thread_exit(void)
 #endif
         /* LAB 3 TODO BEGIN */
         struct thread *thread = current_thread;
-        
-        thread->thread_ctx->thread_exit_state = TE_EXITED;
-        thread->thread_ctx->state = TS_EXIT;
+
+        thread->thread_ctx->thread_exit_state = TE_EXITING;
         // thread_deinit(thread);
         // 需要检查进程中是否还包含线程并退出吗？
 
@@ -462,6 +464,8 @@ int sys_set_affinity(u64 thread_cap, s32 aff)
 
         /* LAB 4 TODO BEGIN */
 
+        thread->thread_ctx->affinity = aff;
+
         /* LAB 4 TODO END */
         if (thread_cap != -1)
                 obj_put((void *)thread);
@@ -484,7 +488,7 @@ s32 sys_get_affinity(u64 thread_cap)
         if (thread == NULL)
                 return -ECAPBILITY;
         /* LAB 4 TODO BEGIN */
-
+        aff = thread->thread_ctx->affinity;
         /* LAB 4 TODO END */
 
         if (thread_cap != -1)
