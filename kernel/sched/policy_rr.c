@@ -264,8 +264,9 @@ int rr_sched(void)
         //         return -EINVAL;
         // }
 
-	// if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->sc && current_thread->thread_ctx->sc->budget != 0)
-	// {
+        // kdebug("current thread: %lx\n", current_thread);
+	// if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->sc && current_thread->thread_ctx->sc->budget != 0) {
+        //         kdebug("thread exit state: %d budget: %d\n", current_thread->thread_ctx->thread_exit_state, current_thread->thread_ctx->sc->budget);
 	// 	return 0;
 	// }
 
@@ -285,12 +286,29 @@ int rr_sched(void)
         // kdebug("before sched\n");
         // rr_top();
 
+        //处理退出进程
+        // kdebug("----------------\n");
         if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->thread_exit_state == TE_EXITING) {
+                // kdebug("exit thread: %lx budget: %d\n", current_thread, current_thread->thread_ctx->sc->budget);
                 current_thread->thread_ctx->thread_exit_state = TE_EXITED;
                 current_thread->thread_ctx->state = TS_EXIT;
-        } else if (current_thread) {
-                rr_sched_enqueue(current_thread);
+        } else {
+                if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->sc && current_thread->thread_ctx->sc->budget != 0) {
+                        // budget != 0, 不调度直接返回
+                        // kdebug("return thread: %lx thread exit state: %d budget: %d\n", current_thread, current_thread->thread_ctx->thread_exit_state, current_thread->thread_ctx->sc->budget);
+                        return 0;
+                } else if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->sc && current_thread->thread_ctx->sc->budget == 0) {
+                        // budget == 0, 调度
+                        // kdebug("sched thread: %lx thread exit state: %d budget: %d\n", current_thread, current_thread->thread_ctx->thread_exit_state, current_thread->thread_ctx->sc->budget);
+                        rr_sched_enqueue(current_thread);
+                }
         }
+        // kdebug("----------------\n");
+        
+        
+        // else if (current_thread) {
+                
+        // }
         
 	/*
 	 * 首先检查当前是否正在运行某个线程
@@ -310,7 +328,7 @@ int rr_sched(void)
 
 	/* resetting thread's budget */
         // 要在此时设budget，因为IDLE线程不会入队
-	// rr_sched_refill_budget(target_thread, DEFAULT_BUDGET);
+	rr_sched_refill_budget(target_thread, DEFAULT_BUDGET);
 
         // kdebug("after sched\n");
         // rr_top();

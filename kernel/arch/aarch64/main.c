@@ -108,12 +108,12 @@ void main(paddr_t boot_flag)
         create_root_thread();
         kinfo("[ChCore] create initial thread done on %d\n", smp_get_cpu_id());
 
-        sched_top();
+        // sched_top();
 
         /* Leave the scheduler to do its job */
         sched();
 
-        sched_top();
+        // sched_top();
 
         /* Context switch to the picked thread */
         eret_to_thread(switch_context());
