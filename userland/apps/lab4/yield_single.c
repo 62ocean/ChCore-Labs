@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
         printf("Hello from ChCore userland!\n");
         for (thread_i = 0; thread_i < 2; ++thread_i) {
-                printf("thread_i: %d\n", thread_i);
+                // printf("thread_i: %d\n", thread_i);
                 child_thread_cap = chcore_thread_create(
                         thread_routine, thread_i, PRIO, TYPE_USER);
                 if (child_thread_cap < 0)

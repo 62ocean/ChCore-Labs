@@ -421,7 +421,10 @@ void sys_thread_exit(void)
         printk("\nBack to kernel.\n");
 #endif
         /* LAB 3 TODO BEGIN */
+        kdebug("start exit\n");
         struct thread *thread = current_thread;
+
+        kdebug("exit current thread: %lx\n", thread);
 
         thread->thread_ctx->thread_exit_state = TE_EXITING;
         // thread_deinit(thread);
@@ -430,6 +433,10 @@ void sys_thread_exit(void)
         /* LAB 3 TODO END */
         /* Reschedule */
         sched();
+
+        // kdebug("after exit:\n");
+        // sched_top();
+
         eret_to_thread(switch_context());
 }
 

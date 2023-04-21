@@ -79,6 +79,7 @@ void main(paddr_t boot_flag)
         arch_interrupt_init();
         /* LAB 4 TODO BEGIN */
         timer_init();
+        // lock_kernel();
         /* LAB 4 TODO END */
         kinfo("[ChCore] interrupt init finished\n");
 
@@ -99,6 +100,7 @@ void main(paddr_t boot_flag)
 #endif
 
         /* LAB 4 TODO BEGIN */
+        // timer_init();
         lock_kernel();
         /* LAB 4 TODO END */
         
@@ -106,8 +108,12 @@ void main(paddr_t boot_flag)
         create_root_thread();
         kinfo("[ChCore] create initial thread done on %d\n", smp_get_cpu_id());
 
+        sched_top();
+
         /* Leave the scheduler to do its job */
         sched();
+
+        sched_top();
 
         /* Context switch to the picked thread */
         eret_to_thread(switch_context());
