@@ -107,6 +107,8 @@ void test_ipc_routine(int server_cap)
         for (int i = 0; i < IPC_THD_NUM; i++)
                 chcore_thread_create(
                         test_multiple_ipc_routine, server_cap, 0, TYPE_USER);
+
+        // __chcore_sys_yield();
         while (finished != IPC_THD_NUM)
                 ;
         printf("Passed!\n");

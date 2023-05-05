@@ -107,7 +107,7 @@ static int create_connection(struct thread *source, struct thread *target,
         // Create the server thread's stack
         /* Lab4: set server_stack_base */
         /* LAB 4 TODO BEGIN */
-
+        server_stack_base = vm_config->stack_base_addr + conn_idx * vm_config->stack_size;
         /* LAB 4 TODO END */
         stack_size = vm_config->stack_size;
         stack_pmo = kmalloc(sizeof(struct pmobject));
@@ -116,6 +116,7 @@ static int create_connection(struct thread *source, struct thread *target,
                 goto out_free_obj;
         }
         pmo_init(stack_pmo, PMO_DATA, stack_size, 0);
+        // kdebug("before map server stack\n");
         vmspace_map_range(target->vmspace,
                           server_stack_base,
                           stack_size,
@@ -127,7 +128,8 @@ static int create_connection(struct thread *source, struct thread *target,
         // Create and map the shared buffer for client and server
         /* LAB 4: set server_buf_base and client_buf_base */
         /* LAB 4 TODO BEGIN */
-
+        server_buf_base = vm_config->buf_base_addr + conn_idx * vm_config->buf_size;
+        client_buf_base = client_vm_config->buf_base_addr;
         /* LAB 4 TODO END */
         buf_size = MIN(vm_config->buf_size, client_vm_config->buf_size);
         client_vm_config->buf_size = buf_size;
@@ -141,7 +143,14 @@ static int create_connection(struct thread *source, struct thread *target,
 
         /* LAB 4: map shared ipc buf to vmspace of server and client */
         /* LAB 4 TODO BEGIN */
-
+        // sys_top();
+        // kdebug("before map shared buffer 1\n");
+        vmspace_map_range(target->vmspace, server_buf_base, buf_size, VMR_READ | VMR_WRITE, buf_pmo);
+        // kdebug("before map shared buffer 2\n");
+        // kdebug("client thread: %lx\n", current_thread);
+        // kdebug("client vmspace: %lx\n", current_thread->vmspace);
+        vmspace_map_range(source->vmspace, client_buf_base, buf_size, VMR_READ | VMR_WRITE, buf_pmo);
+        // kdebug("after map shared buffer\n");
         /* LAB 4 TODO END */
 
         conn->buf.client_user_addr = client_buf_base;
@@ -180,15 +189,21 @@ out_fail:
  */
 static u64 thread_migrate_to_server(struct ipc_connection *conn, u64 arg)
 {
+        // kdebug("222222222222\n");
+
         struct thread *target = conn->target;
         struct server_ipc_config *target_ipc_config =
                 (struct server_ipc_config *)(target->general_ipc_config);
         u64 callback = target_ipc_config->callback;
 
+        // kdebug("222222222222\n");
+
         conn->source = current_thread;
         current_thread->thread_ctx->state = TS_WAITING;
         target->active_conn = conn;
         obj_put(conn);
+
+        // kdebug("222222222222\n");
 
         /**
          * Lab4
@@ -196,8 +211,10 @@ static u64 thread_migrate_to_server(struct ipc_connection *conn, u64 arg)
          * of the ipc_connection stores the stack of the server thread?
          * */
         /* LAB 4 TODO BEGIN: use arch_set_thread_stack*/
-
+        arch_set_thread_stack(target, conn->server_stack_top);
         /* LAB 4 TODO END */
+
+        // kdebug("222222222222\n");
 
         /**
          * Lab4
@@ -206,8 +223,10 @@ static u64 thread_migrate_to_server(struct ipc_connection *conn, u64 arg)
          * to the server?
          * */
         /* LAB 4 TODO BEGIN: use arch_set_thread_next_ip */
-
+        arch_set_thread_next_ip(target, callback);
         /* LAB 4 TODO END */
+
+        // kdebug("222222222222\n");
 
         /**
          * Lab4
@@ -216,14 +235,19 @@ static u64 thread_migrate_to_server(struct ipc_connection *conn, u64 arg)
          */
 
         /* LAB 4 TODO BEGIN: use arch_set_thread_arg0/1 */
-
+        arch_set_thread_arg0(target, arg);
+        arch_set_thread_arg1(target, target->cap_group->pid);
         /* LAB 4 TODO END */
+
+        // kdebug("222222222222\n");
 
         /**
          * Passing the scheduling context of the current thread to thread of
          * connection
          */
         target->thread_ctx->sc = current_thread->thread_ctx->sc;
+
+        // kdebug("222222222222\n");
 
         /**
          * Switch to the server
@@ -254,7 +278,7 @@ static int thread_migrate_to_client(struct ipc_connection *conn, u64 ret_value)
          * The return value returned by server thread;
          */
         /* LAB 4 TODO BEGIN: use arch_set_thread_return */
-
+        arch_set_thread_return(source, ret_value);
         /* LAB 4 TODO END */
 
         /**
@@ -273,11 +297,13 @@ static int thread_migrate_to_client(struct ipc_connection *conn, u64 ret_value)
  */
 int ipc_send_cap(struct ipc_connection *conn)
 {
+        // kdebug("3333333333\n");
         int i, r;
         u64 cap_slot_number;
         u64 cap_slots_offset;
         u64 *cap_buf;
         ipc_msg_t *ipc_msg = conn->ipc_msg;
+        // kdebug("3333333333\n");
 
         r = copy_from_user((char *)&cap_slot_number,
                            (char *)&ipc_msg->cap_slot_number,
@@ -291,6 +317,7 @@ int ipc_send_cap(struct ipc_connection *conn)
                 r = -EINVAL;
                 goto out;
         }
+        // kdebug("3333333333\n");
 
         r = copy_from_user((char *)&cap_slots_offset,
                            (char *)&ipc_msg->cap_slots_offset,
@@ -303,6 +330,7 @@ int ipc_send_cap(struct ipc_connection *conn)
                 r = -ENOMEM;
                 goto out;
         }
+        // kdebug("3333333333\n");
 
         r = copy_from_user((char *)cap_buf,
                            (char *)ipc_msg + cap_slots_offset,
@@ -311,11 +339,22 @@ int ipc_send_cap(struct ipc_connection *conn)
                 goto out;
 
         for (i = 0; i < cap_slot_number; i++) {
+                kdebug("i: %d, cap_buf[i]: %d\n", i, cap_buf[i]);
+        }
+        // kdebug("3333333333\n");
+
+        for (i = 0; i < cap_slot_number; i++) {
                 u64 dest_cap;
 
                 /* Lab4: copy the cap to server and update the cap_buf */
                 /* LAB 4 TODO BEGIN */
 
+                dest_cap = cap_copy(
+                        current_cap_group, conn->target->cap_group, cap_buf[i]);
+                if (dest_cap < 0)
+                        goto out_free_cap;
+                
+                cap_buf[i] = dest_cap;
                 /* LAB 4 TODO END */
         }
 
@@ -513,7 +552,8 @@ void sys_ipc_return(u64 ret, u64 cap_num)
 
         /* Lab4: update the thread's state and sc */
         /* LAB 4 TODO BEGIN */
-
+        current_thread->thread_ctx->state = TS_WAITING;
+        conn->source->thread_ctx->sc = current_thread->thread_ctx->sc;
         /* LAB 4 TODO END */
 
         thread_migrate_to_client(conn, ret);
@@ -535,6 +575,8 @@ u64 sys_ipc_call(u32 conn_cap, struct ipc_msg *ipc_msg, u64 cap_num)
         u64 arg;
         int r = 0;
 
+        // kdebug("11111111\n");
+
         conn = obj_get(current_thread->cap_group, conn_cap, TYPE_CONNECTION);
         if (!conn) {
                 r = -ECAPBILITY;
@@ -542,17 +584,28 @@ u64 sys_ipc_call(u32 conn_cap, struct ipc_msg *ipc_msg, u64 cap_num)
         }
         conn->ipc_msg = ipc_msg;
 
+        // kdebug("11111111\n");
+
         /**
-         * Lab4
+         * Lab4  
          * Here, you need to transfer all the capbiliies of client thread to
          * capbilities in server thread in the ipc_msg if cap_num > 0
          */
         /* LAB 4 TODO BEGIN: use ipc_send_cap */
-
+        if (ipc_msg) {
+                r = ipc_send_cap(conn);
+                if (r < 0)
+                        goto out_obj_put;    
+        }
+        
         /* LAB 4 TODO END */
+
+        // kdebug("11111111\n");
 
         if (ipc_msg == 0)
                 thread_migrate_to_server(conn, 0);
+
+        // kdebug("11111111\n");
 
         /**
          * Lab4
@@ -560,7 +613,7 @@ u64 sys_ipc_call(u32 conn_cap, struct ipc_msg *ipc_msg, u64 cap_num)
          * Then what value should the arg be?
          * */
         /* LAB 4 TODO BEGIN: set arg */
-
+        arg = conn->buf.server_user_addr;
         /* LAB 4 TODO END */
 
         thread_migrate_to_server(conn, arg);
