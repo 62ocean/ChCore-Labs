@@ -35,10 +35,34 @@ s32 wait_sem(struct semaphore *sem, bool is_block)
 {
         s32 ret = 0;
         /* LAB 4 TODO BEGIN */
+        if (sem->sem_count > 0) {
+                sem->sem_count--;
+                return 0;
+        }
+        if (!is_block) {
+                return -EAGAIN;
+        }
 
+        current_thread->thread_ctx->state = TS_WAITING;
+        sem->waiting_threads_count++;
+        list_append(&current_thread->sem_queue_node, &sem->waiting_threads);
+
+        // current_thread->state = TS_WAITING;
+        // current_thread->wait_obj = sem;
+        // current_thread->wait_retval = &ret;
+        // sem->waiting_threads_count++;
+        // list_add_tail(&sem->waiting_threads, &current_thread->wait_list_node);
+        
+        if(current_thread && current_thread->thread_ctx)
+		current_thread->thread_ctx->sc->budget = 0;
+
+        obj_put(sem);      // why??  
+        sched();
+        eret_to_thread(switch_context());
         /* LAB 4 TODO END */
         return ret;
 }
+
 
 /*
  * Lab4
@@ -50,10 +74,22 @@ s32 wait_sem(struct semaphore *sem, bool is_block)
 s32 signal_sem(struct semaphore *sem)
 {
         /* LAB 4 TODO BEGIN */
-
+        // if (sem->waiting_threads_count > 0) {
+        //         struct thread *target_thread = list_entry(sem->waiting_threads.next, struct thread, wait_list_node);
+        //         list_del(&target_thread->wait_list_node);
+        //         target_thread->wait_obj = NULL;
+        //         target_thread->wait_retval = NULL;
+        //         target_thread->state = TS_RUNNABLE;
+        //         sem->waiting_threads_count--;
+        //         add_to_ready_queue(target_thread);
+        // }
+        struct thread *wakeup_thread = list_entry(sem->waiting_threads.next, struct thread, sem_queue_node);
+        list_del(&wakeup_thread->sem_queue_node);
+        sched_enqueue(wakeup_thread);
         /* LAB 4 TODO END */
         return 0;
 }
+
 
 s32 sys_create_sem(void)
 {

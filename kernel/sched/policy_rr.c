@@ -233,58 +233,6 @@ static inline void rr_sched_refill_budget(struct thread *target, u32 budget)
  */
 int rr_sched(void)
 {
-        // /* LAB 4 TODO BEGIN */
-        // struct thread *old_thread = current_thread;
-        // if (old_thread == NULL || 
-        // (old_thread->thread_ctx->state != TS_RUNNING && old_thread->thread_ctx->state != TS_WAITING)) {
-        //         return -EINVAL;
-        // }
-        // if (old_thread->thread_ctx->thread_exit_state == TE_EXITING) {
-        //         old_thread->thread_ctx->thread_exit_state = TE_EXITED;
-        //         old_thread->thread_ctx->state = TS_EXIT;
-        // } else {
-        //         rr_sched_enqueue(old_thread);
-        // }
-        
-        
-        // struct thread *new_thread = rr_sched_choose_thread();
-        // if (new_thread == NULL) {
-        //     return -EINVAL;
-        // }
-
-        // switch_to_thread(new_thread);
-        // /* LAB 4 TODO END */
-
-        // return 0;
-
-        /*  
-	 * 调度器应只能在某个线程预算等于零时才能调度该线程
-	 */
-        // if (current_thread == NULL || current_thread->thread_ctx == NULL || current_thread->thread_ctx->sc == NULL) {
-        //         return -EINVAL;
-        // }
-
-        // kdebug("current thread: %lx\n", current_thread);
-	// if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->sc && current_thread->thread_ctx->sc->budget != 0) {
-        //         kdebug("thread exit state: %d budget: %d\n", current_thread->thread_ctx->thread_exit_state, current_thread->thread_ctx->sc->budget);
-	// 	return 0;
-	// }
-
-        // if (current_thread->thread_ctx->state != TS_RUNNING && current_thread->thread_ctx->state != TS_WAITING
-        //         && current_thread->thread_ctx->thread_exit_state != TE_EXITING) {
-        //         return -EINVAL;
-        // }
-        // rr_sched_refill_budget(current_thread, DEFAULT_BUDGET);
-
-        // if (current_thread->thread_ctx->thread_exit_state == TE_EXITING) {
-        //         current_thread->thread_ctx->thread_exit_state = TE_EXITED;
-        //         current_thread->thread_ctx->state = TS_EXIT;
-        //         thread_deinit(current_thread);
-        // } else if (current_thread != NULL) {
-        //         rr_sched_enqueue(current_thread);
-        // }
-        // kdebug("before sched\n");
-        // rr_top();
 
         //处理退出进程
         // kdebug("----------------\n");

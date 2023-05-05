@@ -35,7 +35,7 @@ int ipc_register_server(server_handler server_handler)
         vm_config.buf_size = SERVER_BUF_SIZE;
         /* LAB 4 TODO END */
         ret = __chcore_sys_register_server(
-                (u64)server_handler, MAX_CLIENT, (u64)&vm_config);
+                (u64)server_handler, MAX_CLIENT, (u64)&vm_config) ;
         chcore_bug_on(ret < 0);
         return 0;
 }
