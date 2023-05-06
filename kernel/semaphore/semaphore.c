@@ -33,10 +33,13 @@ void init_sem(struct semaphore *sem)
  */
 s32 wait_sem(struct semaphore *sem, bool is_block)
 {
+        kdebug("wait----------\n");
+        kdebug("sem: %lx, sem_count: %d, sem_waiting_thread_count: %d\n", sem, sem->sem_count, sem->waiting_threads_count);
         s32 ret = 0;
         /* LAB 4 TODO BEGIN */
         if (sem->sem_count > 0) {
                 sem->sem_count--;
+                kdebug("sem: %lx, sem_count: %d, sem_waiting_thread_count: %d\n", sem, sem->sem_count, sem->waiting_threads_count);
                 return 0;
         }
         if (!is_block) {
@@ -46,18 +49,17 @@ s32 wait_sem(struct semaphore *sem, bool is_block)
         current_thread->thread_ctx->state = TS_WAITING;
         sem->waiting_threads_count++;
         list_append(&current_thread->sem_queue_node, &sem->waiting_threads);
+        kdebug("sem: %lx, sem_count: %d, sem_waiting_thread_count: %d\n", sem, sem->sem_count, sem->waiting_threads_count);
 
-        // current_thread->state = TS_WAITING;
-        // current_thread->wait_obj = sem;
-        // current_thread->wait_retval = &ret;
-        // sem->waiting_threads_count++;
-        // list_add_tail(&sem->waiting_threads, &current_thread->wait_list_node);
-        
-        if(current_thread && current_thread->thread_ctx)
-		current_thread->thread_ctx->sc->budget = 0;
+        // if(current_thread && current_thread->thread_ctx)
+	// 	current_thread->thread_ctx->sc->budget = 0;
 
         obj_put(sem);      // why??  
+        // kdebug("before sched:\n");
+        // sched_top();
         sched();
+        // kdebug("after sched:\n");
+        // sched_top();
         eret_to_thread(switch_context());
         /* LAB 4 TODO END */
         return ret;
@@ -73,6 +75,8 @@ s32 wait_sem(struct semaphore *sem, bool is_block)
  */
 s32 signal_sem(struct semaphore *sem)
 {
+        kdebug("signal----------\n");
+        kdebug("sem: %lx, sem_count: %d, sem_waiting_thread_count: %d\n", sem, sem->sem_count, sem->waiting_threads_count);
         /* LAB 4 TODO BEGIN */
         // if (sem->waiting_threads_count > 0) {
         //         struct thread *target_thread = list_entry(sem->waiting_threads.next, struct thread, wait_list_node);
@@ -83,9 +87,20 @@ s32 signal_sem(struct semaphore *sem)
         //         sem->waiting_threads_count--;
         //         add_to_ready_queue(target_thread);
         // }
+        if (sem->waiting_threads_count == 0) {
+                sem->sem_count++;
+                kdebug("sem: %lx, sem_count: %d, sem_waiting_thread_count: %d\n", sem, sem->sem_count, sem->waiting_threads_count);
+                return 0;
+        }
+        
+        sem->waiting_threads_count--;
         struct thread *wakeup_thread = list_entry(sem->waiting_threads.next, struct thread, sem_queue_node);
         list_del(&wakeup_thread->sem_queue_node);
         sched_enqueue(wakeup_thread);
+        kdebug("sem: %lx, sem_count: %d, sem_waiting_thread_count: %d\n", sem, sem->sem_count, sem->waiting_threads_count);
+        // if (current_thread->thread_ctx->type == TYPE_IDLE) {
+        //         sys_yield();
+        // }
         /* LAB 4 TODO END */
         return 0;
 }
