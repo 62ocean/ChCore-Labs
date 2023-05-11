@@ -1,0 +1,17 @@
+digraph G {
+    
+    create_thread -> __chcore_sys_create_thread [label="syscall"]
+    __chcore_sys_create_thread -> "创建并初始化thread内核对象"
+    __chcore_sys_create_thread -> "加入调度队列"
+    "加入调度队列" -> "被调度"
+    "被调度" -> thread_entry [label="pc指向库函数"]
+
+    subgraph cluster_a {
+        label="user mode"
+        thread_entry -> func
+    }
+
+    
+    thread_entry -> __chcore_sys_thread_exit
+
+}

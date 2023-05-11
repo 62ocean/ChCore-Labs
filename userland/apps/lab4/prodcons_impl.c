@@ -29,12 +29,15 @@ void *producer(void *arg)
 
         while (i < PROD_ITEM_CNT) {
                 /* LAB 4 TODO BEGIN */
-
+                __chcore_sys_wait_sem(empty_slot, 1);
+                // printf("start produce %d\n", i);
                 /* LAB 4 TODO END */
                 new_msg = produce_new();
                 buffer_add_safe(new_msg);
+                // printf("after produce %d\n", i);
                 /* LAB 4 TODO BEGIN */
-
+                __chcore_sys_signal_sem(filled_slot);
+                // __chcore_sys_yield();
                 /* LAB 4 TODO END */
                 i++;
         }
@@ -49,12 +52,14 @@ void *consumer(void *arg)
 
         while (i < COSM_ITEM_CNT) {
                 /* LAB 4 TODO BEGIN */
-
+                __chcore_sys_wait_sem(filled_slot, 1);
                 /* LAB 4 TODO END */
+                // printf("start consume %d\n",i);
                 cur_msg = buffer_remove_safe();
-
+                // printf("after consume %d\n",i);
                 /* LAB 4 TODO BEGIN */
-
+                __chcore_sys_signal_sem(empty_slot);
+                // __chcore_sys_yield();
                 /* LAB 4 TODO END */
                 consume_msg(cur_msg);
                 i++;
@@ -62,3 +67,4 @@ void *consumer(void *arg)
         __sync_fetch_and_add(&global_exit, 1);
         return 0;
 }
+

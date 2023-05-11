@@ -153,6 +153,11 @@ static inline int sched_dequeue(struct thread *thread)
         return cur_sched_ops->sched_dequeue(thread);
 }
 
+static inline void sched_top()
+{
+        cur_sched_ops->sched_top();
+}
+
 /* Syscalls */
 void sys_yield(void);
 void sys_top(void);

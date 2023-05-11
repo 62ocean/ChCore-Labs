@@ -78,7 +78,8 @@ void main(paddr_t boot_flag)
         /* Init exception vector */
         arch_interrupt_init();
         /* LAB 4 TODO BEGIN */
-
+        timer_init();
+        // lock_kernel();
         /* LAB 4 TODO END */
         kinfo("[ChCore] interrupt init finished\n");
 
@@ -99,15 +100,20 @@ void main(paddr_t boot_flag)
 #endif
 
         /* LAB 4 TODO BEGIN */
-
+        // timer_init();
+        lock_kernel();
         /* LAB 4 TODO END */
         
         /* Create initial thread here, which use the `init.bin` */
         create_root_thread();
         kinfo("[ChCore] create initial thread done on %d\n", smp_get_cpu_id());
 
+        // sched_top();
+
         /* Leave the scheduler to do its job */
         sched();
+
+        // sched_top();
 
         /* Context switch to the picked thread */
         eret_to_thread(switch_context());
@@ -124,14 +130,14 @@ void secondary_start(void)
         pmu_init();
 
         /* LAB 4 TODO BEGIN: Set the cpu_status */
-
+        cpu_status[cpuid] = cpu_run;
         /* LAB 4 TODO END */
 #ifdef CHCORE_KERNEL_TEST
         run_test();
 #endif
 
         /* LAB 4 TODO BEGIN */
-
+        timer_init();
         /* LAB 4 TODO END */
 
         lock_kernel();

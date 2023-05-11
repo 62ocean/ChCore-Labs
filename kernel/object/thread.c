@@ -27,6 +27,7 @@
 
 #include "thread_env.h"
 
+// 初始化thread参数，创建内核栈，设置上下文
 static int thread_init(struct thread *thread, struct cap_group *cap_group,
                        u64 stack, u64 pc, u32 prio, u32 type, s32 aff)
 {
@@ -94,13 +95,14 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
         int *pmo_cap;
         struct pmobject *pmo;
         u64 ret;
-
+        // kdebug("enter load_binary\n");
         elf = elf_parse_file(bin);
         pmo_cap = kmalloc(elf->header.e_phnum * sizeof(*pmo_cap));
         if (!pmo_cap) {
                 r = -ENOMEM;
                 goto out_fail;
         }
+        // kdebug("aaa\n");
 
         /* load each segment in the elf binary */
         for (i = 0; i < elf->header.e_phnum; ++i) {
@@ -109,7 +111,26 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
                         seg_sz = elf->p_headers[i].p_memsz;
                         p_vaddr = elf->p_headers[i].p_vaddr;
                         /* LAB 3 TODO BEGIN */
+                        // 虚拟地址页对齐
+                        vaddr_t vaddr_start = ROUND_DOWN(p_vaddr, PAGE_SIZE);
+                        vaddr_t vaddr_end =
+                                ROUND_UP(p_vaddr + seg_sz, PAGE_SIZE);
+                        seg_map_sz = vaddr_end - vaddr_start;
+                        // 创建所需大小的pmo，PMO_DATA类型马上分配物理内存空间
+                        ret = create_pmo(seg_map_sz, PMO_DATA, cap_group, &pmo);
+                        // 将elf文件中的内容拷贝到物理内存空间中
+                        u64 start_offset = p_vaddr - vaddr_start;
+                        char *pmo_start =
+                                phys_to_virt(pmo->start) + start_offset;
+                        char *seg_start = bin + elf->p_headers[i].p_offset;
+                        u64 copy_size = elf->p_headers[i].p_filesz;
+                        memcpy(pmo_start, seg_start, copy_size);
 
+                        flags = PFLAGS2VMRFLAGS(elf->p_headers[i].p_flags);
+
+                        // 添加vmregion并关联到上述pmo（即添加虚拟地址空间）
+                        ret = vmspace_map_range(
+                                vmspace, p_vaddr, seg_sz, flags, pmo);
                         /* LAB 3 TODO END */
                         BUG_ON(ret != 0);
                 }
@@ -158,7 +179,6 @@ static int __create_root_thread(struct cap_group *cap_group, u64 stack_base,
         u64 stack;
         u64 pc;
         vaddr_t kva;
-
         init_vmspace = obj_get(cap_group, VMSPACE_OBJ_ID, TYPE_VMSPACE);
         obj_put(init_vmspace);
 
@@ -187,6 +207,7 @@ static int __create_root_thread(struct cap_group *cap_group, u64 stack_base,
         /* Fill the parameter of the thread struct */
         pc = load_binary(cap_group, init_vmspace, bin_start, &meta);
         stack = stack_base + stack_size;
+        // 为什么要有stack_base? 栈不是增长的吗？
 
         /* Allocate a physical for the main stack for prepare_env */
         kva = (vaddr_t)get_pages(0);
@@ -197,12 +218,12 @@ static int __create_root_thread(struct cap_group *cap_group, u64 stack_base,
 
         prepare_env((char *)kva, stack, &meta, bin_name);
         stack -= ENV_SIZE;
-
+        kdebug("pc:%lx\n", pc);
         ret = thread_init(thread, cap_group, stack, pc, prio, type, aff);
         BUG_ON(ret != 0);
 
         /* Add the thread into the thread_list of the cap_group */
-        list_add(&thread->node, &cap_group->thread_list);
+        list_add(&thread->node, &cap_group->thread_list, false);
         cap_group->thread_cnt += 1;
 
         /* Allocate the cap for the init thread */
@@ -308,7 +329,8 @@ static int create_thread(struct cap_group *cap_group, u64 stack, u64 pc,
         if (ret != 0)
                 goto out_free_obj;
 
-        list_add(&thread->node, &cap_group->thread_list);
+        // 将新创建的线程添加到进程的线程列表中
+        list_add(&thread->node, &cap_group->thread_list, false);
         cap_group->thread_cnt += 1;
 
         arch_set_thread_arg0(thread, arg);
@@ -399,10 +421,22 @@ void sys_thread_exit(void)
         printk("\nBack to kernel.\n");
 #endif
         /* LAB 3 TODO BEGIN */
+        // kdebug("start exit\n");
+        struct thread *thread = current_thread;
+
+        // kdebug("exit current thread: %lx\n", thread);
+
+        thread->thread_ctx->thread_exit_state = TE_EXITING;
+        // thread_deinit(thread);
+        // 需要检查进程中是否还包含线程并退出吗？
 
         /* LAB 3 TODO END */
         /* Reschedule */
         sched();
+
+        // kdebug("after exit:\n");
+        // sched_top();
+
         eret_to_thread(switch_context());
 }
 
@@ -437,6 +471,8 @@ int sys_set_affinity(u64 thread_cap, s32 aff)
 
         /* LAB 4 TODO BEGIN */
 
+        thread->thread_ctx->affinity = aff;
+
         /* LAB 4 TODO END */
         if (thread_cap != -1)
                 obj_put((void *)thread);
@@ -459,7 +495,7 @@ s32 sys_get_affinity(u64 thread_cap)
         if (thread == NULL)
                 return -ECAPBILITY;
         /* LAB 4 TODO BEGIN */
-
+        aff = thread->thread_ctx->affinity;
         /* LAB 4 TODO END */
 
         if (thread_cap != -1)
