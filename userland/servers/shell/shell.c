@@ -215,9 +215,9 @@ void print_file_content(char* path)
 	FILE *f = fopen(path,&mode);
 	char rbuf[512];
 	// read buf 不能过大 不超过512
-	fread(rbuf,sizeof(char),sizeof(rbuf),f);
+	int filelen = fread(rbuf,sizeof(char),sizeof(rbuf),f);
     // fclose(f);
-	for (int i = 0; i < 10; ++i) {
+	for (int i = 0; i < filelen; ++i) {
 		chcore_console_printf("%c", rbuf[i]);
 	}
 
