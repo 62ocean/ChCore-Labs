@@ -206,7 +206,7 @@ int tfs_namex(struct inode **dirat, const char **name, int mkdir_p)
 	int i;
 	struct dentry *dent;
 	int err;
-	printf("[tfs_namex] initial name: %s\n", *name);
+	// printf("[tfs_namex] initial name: %s\n", *name);
 
 	if (**name == '/') {
 		*dirat = tmpfs_root;
