@@ -184,15 +184,16 @@ char *readline(const char *prompt)
 
 	/* LAB 5 TODO BEGIN */
 	/* Fill buf and handle tabs with do_complement(). */
+		if (c == '\n' || c == '\r') {
+				break;
+			}
 		if(c == '\t'){
 			do_complement(buf, complement, complement_time);
 			printf("%s\n", buf);
 			complement_time++;
 			continue;
 		}
-		if (c == '\n' || c == '\r') {
-			break;
-		}
+		
 		buf[i] = c;
 		i++;
 	/* LAB 5 TODO END */
@@ -214,14 +215,11 @@ void print_file_content(char* path)
 	char mode = 'r';
 	FILE *f = fopen(path,&mode);
 	char rbuf[512];
-	// read buf 不能过大 不超过512
 	int filelen = fread(rbuf,sizeof(char),sizeof(rbuf),f);
-    // fclose(f);
 	for (int i = 0; i < filelen; ++i) {
 		chcore_console_printf("%c", rbuf[i]);
 	}
 
-	// chcore_console_printf("%s", rbuf);
 	/* LAB 5 TODO END */
 
 }

@@ -32,14 +32,9 @@ extern struct ipc_struct *fs_ipc_struct;
 /* You could add new functions or include headers here.*/
 /* LAB 5 TODO BEGIN */
 
-int fs_alloc_fd() {
-    static int cnt = 0;
-    return ++cnt;
-}
+int cnt = 0;
 
-// convert string to int
-// 暂未考虑对负数的处理
-int StringToInt(char *str) {
+int string_to_int(char *str) {
     int size = strlen(str);
     int off = 0;
     int number = 0;
@@ -49,24 +44,21 @@ int StringToInt(char *str) {
     return number;
 }
 
-// convert int to string
-void IntToString(int src, char *dst) {
+void int_to_string(int src, char *dst) {
     int i = 0;
-    char *temp = (char *)malloc(512);
-    memset(temp, '\0', 512);
+    char *temp = (char *)malloc(100);
+    memset(temp, '\0', 100);
 
     while (src > 0) {
         temp[i++] = (src % 10) + '0';
         src /= 10;
     }
 
-    // convert the string
     int size = strlen(temp);
     i = 0;
     for (int j = size - 1; j >= 0; j--) {
         dst[i++] = temp[j];
     }
-    // printf("src int: %d, dst char: %s\n", src, dst);
     free(temp);
 }
 
@@ -74,28 +66,25 @@ void IntToString(int src, char *dst) {
 
 FILE *fopen(const char *filename, const char *mode) {
     /* LAB 5 TODO BEGIN */
-    // printf("[fopen] open file %s mode %c\n", filename, *mode);
     struct ipc_msg *ipc_msg = ipc_create_msg(fs_ipc_struct, sizeof(struct fs_request), 0);
     struct fs_request *fr = (struct fs_request *)ipc_get_msg_data(ipc_msg);
 
     FILE *file = (FILE *)malloc(sizeof(FILE));
-    int fd = fs_alloc_fd();
+    int fd = ++cnt;
     file->fd = fd;
 
+    fr->open.new_fd = fd;
     fr->req = FS_REQ_OPEN;
     strcpy(fr->open.pathname, filename);
-    fr->open.new_fd = fd;
-    switch (*mode) {
-        case 'w':
-            fr->open.mode = O_RDWR;
-            fr->open.flags = O_RDWR;
-            file->write = 1;
-            break;
-        case 'r':
-            fr->open.mode = O_RDONLY;
-            fr->open.flags = O_RDONLY;
-            file->write = 0;
-            break;
+    
+    if (*mode == 'w') {
+        fr->open.mode = O_RDWR;
+        fr->open.flags = O_RDWR;
+        file->write = 1;
+    } else if (*mode == 'r') {
+        fr->open.mode = O_RDONLY;
+        fr->open.flags = O_RDONLY;
+        file->write = 0;
     }
 
     int ret = ipc_call(fs_ipc_struct, ipc_msg);
@@ -103,7 +92,6 @@ FILE *fopen(const char *filename, const char *mode) {
 
     if (ret < 0) {
         if (*mode == 'w') {
-            // printf("[fopen] open unexisted file %s at mode write, create now\n", filename);
             ipc_msg = ipc_create_msg(fs_ipc_struct, sizeof(struct fs_request), 0);
             fr = (struct fs_request *)ipc_get_msg_data(ipc_msg);
             fr->req = FS_REQ_CREAT;
@@ -112,16 +100,9 @@ FILE *fopen(const char *filename, const char *mode) {
             ipc_destroy_msg(fs_ipc_struct, ipc_msg);
             if (ret >= 0) {
                 return fopen(filename, mode);
-            } else {
-                // printf("[fopen] create failed!\n");
-                return NULL;
-            }
-        } else {
-            // printf("[fopen] open unexisted file %s at mode read, return NULL\n", filename);
-            return NULL;
+            } 
         }
     } else {
-        // printf("[fopen] open file %s successfully \n", filename);
         return file;
     }
 
@@ -131,7 +112,6 @@ FILE *fopen(const char *filename, const char *mode) {
 
 size_t fwrite(const void *src, size_t size, size_t nmemb, FILE *f) {
     /* LAB 5 TODO BEGIN */
-    // printf("[fwrite] write fd%d size %d nmemb %d\n", f->fd, size, nmemb);
     int cnt = nmemb * size + 1;
     struct ipc_msg *ipc_msg = ipc_create_msg(fs_ipc_struct, sizeof(struct fs_request) + cnt + 1, 0);
     struct fs_request *fr = (struct fs_request *)ipc_get_msg_data(ipc_msg);
@@ -140,12 +120,9 @@ size_t fwrite(const void *src, size_t size, size_t nmemb, FILE *f) {
     fr->write.fd = f->fd;
     fr->write.count = cnt - 1;
 
-    // printf("[fwrite] write content %s\n", src);
     ipc_set_msg_data(ipc_msg, (void *)src, sizeof(struct fs_request), cnt + 1);
 
     int ret = ipc_call(fs_ipc_struct, ipc_msg);
-    // printf("[fwrite] ipc call write fd%d ret %d\n", f->fd, ret);
-
     ipc_destroy_msg(fs_ipc_struct, ipc_msg);
 
     return ret;
@@ -155,17 +132,15 @@ size_t fwrite(const void *src, size_t size, size_t nmemb, FILE *f) {
 
 size_t fread(void *destv, size_t size, size_t nmemb, FILE *f) {
     /* LAB 5 TODO BEGIN */
-    // printf("[fread] read fd%d size %d nmemb %d\n", f->fd, size, nmemb);
-    int cnt = size * nmemb;
-    struct ipc_msg *ipc_msg = ipc_create_msg(fs_ipc_struct, sizeof(struct fs_request) + cnt + 2, 0);
+    struct ipc_msg *ipc_msg = ipc_create_msg(fs_ipc_struct, sizeof(struct fs_request) + size * nmemb + 2, 0);
     struct fs_request *fr = (struct fs_request *)ipc_get_msg_data(ipc_msg);
+
     fr->req = FS_REQ_READ;
     fr->read.fd = f->fd;
-    fr->read.count = cnt;
+    fr->read.count = size * nmemb;
 
     int ret = ipc_call(fs_ipc_struct, ipc_msg);
     if (ret > 0) {
-        // printf("[fread] read fd%d size %d into dest\n", f->fd, ret);
         memcpy(destv, ipc_get_msg_data(ipc_msg), ret);
     }
     ipc_destroy_msg(fs_ipc_struct, ipc_msg);
@@ -176,7 +151,6 @@ size_t fread(void *destv, size_t size, size_t nmemb, FILE *f) {
 
 int fclose(FILE *f) {
     /* LAB 5 TODO BEGIN */
-    // printf("[fclose] close fd%d\n", f->fd);
     struct ipc_msg *ipc_msg = ipc_create_msg(fs_ipc_struct, sizeof(struct fs_request), 0);
     struct fs_request *fr = (struct fs_request *)ipc_get_msg_data(ipc_msg);
 
@@ -185,9 +159,8 @@ int fclose(FILE *f) {
 
     int ret = ipc_call(fs_ipc_struct, ipc_msg);
     ipc_destroy_msg(fs_ipc_struct, ipc_msg);
-    // printf("[fopen] open fd%d return %d\n", f->fd, ret);
-    if (ret < 0)
-        return ret;
+
+    if (ret < 0) return -1;
     /* LAB 5 TODO END */
     return 0;
 }
@@ -195,15 +168,12 @@ int fclose(FILE *f) {
 /* Need to support %s and %d. */
 int fscanf(FILE *f, const char *fmt, ...) {
     /* LAB 5 TODO BEGIN */
-    // 1024 is enough for test /doge
     char rbuf[1024];
     memset(rbuf, 0x0, sizeof(rbuf));
     int file_len = fread(rbuf, sizeof(char), sizeof(rbuf), f);
-    // printf("[fscanf]rbuf: %s, len %d\n", rbuf, file_len);
 
     va_list ap;
     va_start(ap, fmt);
-    // printf("%s\n", fmt);
     int i = 0;
     int len = strlen(fmt);
     int fcursor = 0;
@@ -214,7 +184,6 @@ int fscanf(FILE *f, const char *fmt, ...) {
                 char *tmp = va_arg(ap, char *);
                 int end = fcursor;
                 while (end < file_len) {
-                    // 遇到空格或换行或制表符时结束
                     if (rbuf[end] == ' ' || rbuf[end] == '\n' || rbuf[end] == '\t') {
                         break;
                     }
@@ -233,14 +202,13 @@ int fscanf(FILE *f, const char *fmt, ...) {
                 }
                 char str[256] = {'\0'};
                 memcpy((char *)str, rbuf + fcursor, end - fcursor);
-                *tmp = StringToInt(str);
+                *tmp =string_to_int(str);
                 fcursor = end;
             }
         } else {
             if (rbuf[fcursor] == fmt[i]) {
                 fcursor++;
             } else {
-                // printf("unmatch format where i=%d cursor=%d\n",i,fcursor);
                 return -EINVAL;
             }
         }
@@ -259,7 +227,6 @@ int fprintf(FILE *f, const char *fmt, ...) {
 
     va_list ap;
     va_start(ap, fmt);
-    // printf("%s\n", fmt);
     int i = 0;
     int len = strlen(fmt);
     int fcursor = 0;
@@ -273,7 +240,7 @@ int fprintf(FILE *f, const char *fmt, ...) {
             } else if (fmt[i] == 'd') {
                 int tmp = va_arg(ap, int);
                 char str[256] = {'\0'};
-                IntToString(tmp, str);
+                int_to_string(tmp, str);
                 memcpy(wbuf + fcursor, str, strlen(str));
                 fcursor += strlen(str);
             }
@@ -283,7 +250,6 @@ int fprintf(FILE *f, const char *fmt, ...) {
         }
         i++;
     }
-    // printf("wbuf is %s\n", wbuf);
 	fwrite(wbuf, sizeof(char), strlen(wbuf), f);
     va_end(ap);
 

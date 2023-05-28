@@ -225,38 +225,38 @@ int tfs_namex(struct inode **dirat, const char **name, int mkdir_p)
 	// `tfs_lookup` and `tfs_mkdir` are useful here
 
 	/* LAB 5 TODO BEGIN */
-	bool end = false;
-    struct inode *parent = *dirat;
-    while (!end) {
-        i = 0;
-        buff[i] = '\0';
-        while (**name && **name != '/') {
-            buff[i] = **name;
-            ++i;
-            ++(*name);
-        }
-        buff[i] = '\0';
-        if (**name == '\0') {
-            end = true;
-        } 
-        dent = tfs_lookup(*dirat, buff, i);
-        if (dent == NULL) {
-            if (mkdir_p && !end) {
-                tfs_mkdir(*dirat, buff, i);
-                dent = tfs_lookup(*dirat, buff, i);
-            } else if (!mkdir_p) {
-                return -ENOENT;
-            } else {
-                *name -= i;
-                return 0;
-            }
-        }
-        parent = *dirat;
-        *dirat = dent->inode;
-        ++(*name);
-    }
-    *dirat = parent;
-    *name = dent->name.str;
+	int len = 0;
+	while(1) {
+		len = 0;
+		while(**name != '/' && **name != '\0'){
+			buff[len] = **name;
+			++(*name);
+			++len;
+		}	
+		if(**name == '\0'){
+			*name = *name - len;
+			return 0;
+		}
+		else{
+			buff[len] = '\0';
+			// const char *start = *name - len;
+			if((dent = tfs_lookup(*dirat, buff, len)) == NULL){
+				// printf("what's missing: %s\n", buff);
+				if(mkdir_p){
+					tfs_mkdir(*dirat, buff, len);
+					dent = tfs_lookup(*dirat, buff, len);
+					// printf("dent: %lx\n", dent);
+				}
+				else{
+					return -1;
+				}
+			}
+			// printf("*dirat: %p, dent->inode: %p\n", *dirat, dent->inode);
+			*dirat = dent->inode;
+			while(**name == '/')
+				++(*name);
+		}
+	}
 	/* LAB 5 TODO END */
 
 	/* we will never reach here? */
@@ -334,12 +334,8 @@ ssize_t tfs_file_write(struct inode * inode, off_t offset, const char *data,
 	void *page;
 
 	/* LAB 5 TODO BEGIN */
-	if (offset > inode->size) {
-        return -EINVAL;
-    }
     u64 page_begin = offset / PAGE_SIZE;
-    u64 page_end = (offset + size-1) / PAGE_SIZE;
-    u64 total_size = 0;
+    u64 page_end = (offset + size - 1) / PAGE_SIZE;
     if (offset + size > inode->size) inode->size = offset + size;
     for (page_no = page_begin; page_no <= page_end; page_no++) {
         page = radix_get(&inode->data, page_no);
@@ -348,10 +344,9 @@ ssize_t tfs_file_write(struct inode * inode, off_t offset, const char *data,
             radix_add(&inode->data, page_no, page);
         }
         page_off = cur_off % PAGE_SIZE;
-        to_write = page_no == page_end ? size - total_size : PAGE_SIZE;
-        memcpy(page + page_off, data + total_size, to_write);
+        to_write = page_no == page_end ? size - (cur_off - offset) : PAGE_SIZE;
+        memcpy(page + page_off, data + cur_off - offset, to_write);
         radix_add(&inode->data, page_no, page);
-        total_size += to_write;
         cur_off += to_write;
     }
 	/* LAB 5 TODO END */
@@ -375,22 +370,13 @@ ssize_t tfs_file_read(struct inode * inode, off_t offset, char *buff,
 	void *page;
 
 	/* LAB 5 TODO BEGIN */
-	if (offset > inode->size) {
-        return -EINVAL;
-    }
-    if (size + offset > inode->size) {
-        size = inode->size - offset;
-    }
-
     u64 page_begin = offset / PAGE_SIZE;
     u64 page_end = (offset + size-1) / PAGE_SIZE;
-    u64 total_size = 0;
     for (int page_no = page_begin; page_no <= page_end; page_no++) {
         page = radix_get(&inode->data, page_no);
         page_off = cur_off % PAGE_SIZE;
-        to_read = page_no == page_end ? size - total_size : PAGE_SIZE;
-        memcpy(buff + total_size, page + page_off, to_read);
-        total_size += to_read;
+        to_read = page_no == page_end ? size - (cur_off - offset) : PAGE_SIZE;
+        memcpy(buff + cur_off - offset, page + page_off, to_read);
         cur_off += to_read;
     }
 	/* LAB 5 TODO END */
