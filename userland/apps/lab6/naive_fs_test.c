@@ -17,13 +17,13 @@
 
 int sd_bread(int lba, char *buffer)
 {
-    printf("block read %d\n", lba);
+    // printf("block read %d\n", lba);
     return chcore_sd_read(lba, buffer);
 }
 
 int sd_bwrite(int lba, const char *buffer)
 {
-    printf("block write %d\n", lba);
+    // printf("block write %d\n", lba);
     return chcore_sd_write(lba, buffer);
 }
 
