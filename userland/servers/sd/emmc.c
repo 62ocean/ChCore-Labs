@@ -467,7 +467,21 @@ int sd_Read(void *pBuffer, size_t nCount)
 {
 	/* LAB 6 TODO BEGIN */
     /* BLANK BEGIN */
+	if (m_ullOffset % SD_BLOCK_SIZE == 0) {
 
+        u32 nBlock = m_ullOffset / SD_BLOCK_SIZE;
+
+		DataSyncBarrier();
+
+		if (DoRead((u8 *)pBuffer, nCount, nBlock) != (int)nCount) {
+			DataMemBarrier();
+			return -1;
+		}
+		
+		DataMemBarrier();
+		return nCount;
+    }
+    
     /* BLANK END */
     /* LAB 6 TODO END */
 	return -1;
@@ -478,6 +492,20 @@ int sd_Write(const void *pBuffer, size_t nCount)
 	/* LAB 6 TODO BEGIN */
     /* BLANK BEGIN */
 
+	if (m_ullOffset % SD_BLOCK_SIZE == 0) {
+
+        u32 nBlock = m_ullOffset / SD_BLOCK_SIZE;
+		DataSyncBarrier();
+
+		if (DoWrite((u8 *)pBuffer, nCount, nBlock) != (int)nCount) {
+			DataMemBarrier();
+			return -1;
+		}
+
+		DataMemBarrier();
+		return nCount;
+    }
+
     /* BLANK END */
     /* LAB 6 TODO END */
 	return -1;
@@ -487,7 +515,8 @@ u64 Seek(u64 ullOffset)
 {
 	/* LAB 6 TODO BEGIN */
     /* BLANK BEGIN */
-
+	m_ullOffset = ullOffset;
+	return ullOffset;
     /* BLANK END */
     /* LAB 6 TODO END */
 	return -1;
@@ -1504,6 +1533,11 @@ int DoDataCommand(int is_write, u8 * buf, size_t buf_size, u32 block_no)
 	// LAB6 TODO: judge the type of the command
 	/* LAB 6 TODO BEGIN */
     /* BLANK BEGIN */
+	if (is_write) {
+        command = m_blocks_to_transfer > 1 ? WRITE_MULTIPLE_BLOCK : WRITE_BLOCK;
+    } else {
+        command = m_blocks_to_transfer > 1 ? READ_MULTIPLE_BLOCK : READ_SINGLE_BLOCK;
+    }
 
     /* BLANK END */
     /* LAB 6 TODO END */
@@ -1538,7 +1572,8 @@ int DoRead(u8 * buf, size_t buf_size, u32 block_no)
 {
 	/* LAB 6 TODO BEGIN */
     /* BLANK BEGIN */
-
+	if (DoDataCommand(false, buf, buf_size, block_no) != -1) 
+        return buf_size;
     /* BLANK END */
     /* LAB 6 TODO END */
 	return -1;
@@ -1548,7 +1583,8 @@ int DoWrite(u8 * buf, size_t buf_size, u32 block_no)
 {
 	/* LAB 6 TODO BEGIN */
     /* BLANK BEGIN */
-
+	if (DoDataCommand(true, buf, buf_size, block_no) != -1) 
+        return buf_size;
     /* BLANK END */
     /* LAB 6 TODO END */
 	return -1;
