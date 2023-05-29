@@ -60,10 +60,57 @@ struct thread idle_threads[PLAT_CPU_NUM];
  */
 int rr_sched_enqueue(struct thread *thread)
 {
-        /* LAB 4 TODO BEGIN */
+        // /* LAB 4 TODO BEGIN */
+        // if (thread == NULL || thread->thread_ctx == NULL || thread->thread_ctx->state == TS_READY) {
+        //         return -EINVAL;
+        // }
+        // if (thread->thread_ctx->type == TYPE_IDLE) {
+        //         return 0;
+        // }
+        // s32 cpu_id = thread->thread_ctx->affinity;
+        // if (cpu_id == NO_AFF) {
+        //         cpu_id = smp_get_cpu_id();
+        // }
+        // if (cpu_id >= PLAT_CPU_NUM) {
+        //           return -EINVAL;
+        // }
 
-        /* LAB 4 TODO END */
-        return 0;
+        // list_append(&thread->ready_queue_node, &rr_ready_queue_meta[cpu_id].queue_head);
+        // thread->thread_ctx->cpuid = cpu_id;
+        // thread->thread_ctx->state = TS_READY;
+        // rr_ready_queue_meta[cpu_id].queue_len++;
+        // return 0;
+        // /* LAB 4 TODO END */
+
+        if (thread == NULL || thread->thread_ctx == NULL || thread->thread_ctx->state == TS_READY)
+	{
+		return -EINVAL;
+	}
+	/* If the thread is IDEL thread, do nothing! */
+	if (thread->thread_ctx->type == TYPE_IDLE)
+	{
+		return 0;
+	}
+
+	/* 
+	 * If affinity = NO_AFF, assign the core to the current cpu.
+	 * 将线程给他指定的cpu运行
+	 */
+	u32 cpu_id = smp_get_cpu_id();
+	if (thread->thread_ctx->affinity != NO_AFF)
+	{
+		cpu_id = thread->thread_ctx->affinity;
+		if (cpu_id >= PLAT_CPU_NUM)
+		{
+			return -EINVAL;
+		}
+	}
+
+	list_append(&thread->ready_queue_node, &rr_ready_queue_meta[cpu_id].queue_head);
+        rr_ready_queue_meta[cpu_id].queue_len++;
+	thread->thread_ctx->state = TS_READY;
+	thread->thread_ctx->cpuid = cpu_id; /* [ERROR]: tst_sched_param:120 threads[i]->thread_ctx->cpuid != cpuid*/
+	return 0;
 }
 
 /*
@@ -74,10 +121,40 @@ int rr_sched_enqueue(struct thread *thread)
  */
 int rr_sched_dequeue(struct thread *thread)
 {
-        /* LAB 4 TODO BEGIN */
+        // /* LAB 4 TODO BEGIN */
+        
 
-        /* LAB 4 TODO END */
-        return 0;
+        // if (thread == NULL || thread->thread_ctx == NULL || 
+        // thread->thread_ctx->state != TS_READY || thread->thread_ctx->type == TYPE_IDLE) {
+	// 	return -EINVAL;
+	// }
+
+	// // if (thread->thread_ctx->type == TYPE_IDLE) {
+	// // 	return 0;
+	// // }
+
+        // list_del(&thread->ready_queue_node);
+	// thread->thread_ctx->state = TS_INTER;
+        // rr_ready_queue_meta[smp_get_cpu_id()].queue_len--;
+        // return 0;
+        // /* LAB 4 TODO END */
+
+        if (thread == NULL || thread->thread_ctx == NULL || thread->thread_ctx->state != TS_READY)
+	{
+		return -EINVAL;
+	}
+
+	/* 如果是空闲线程 则不用出队 */
+	if (thread->thread_ctx->type == TYPE_IDLE)
+	{
+		// thread->thread_ctx->state = TS_INTER;
+		return 0;
+	}
+
+	list_del(&thread->ready_queue_node);
+        rr_ready_queue_meta[smp_get_cpu_id()].queue_len++;
+	thread->thread_ctx->state = TS_INTER;
+	return 0;
 }
 
 /*
@@ -89,12 +166,44 @@ int rr_sched_dequeue(struct thread *thread)
  */
 struct thread *rr_sched_choose_thread(void)
 {
-        struct thread *thread = NULL;
-        /* LAB 4 TODO BEGIN */
+        // struct thread *thread = NULL;
+        // /* LAB 4 TODO BEGIN */
+        // int cpu_id = smp_get_cpu_id();
+        // if (list_empty(&rr_ready_queue_meta[cpu_id].queue_head)) {
+        //          thread = &idle_threads[cpu_id];
+        // } else {
+        //         struct list_head *pos = &rr_ready_queue_meta[cpu_id].queue_head.next;
+        //         thread = list_entry(pos, struct thread, ready_queue_node);
+        //         if (rr_sched_dequeue(thread) < 0) {
+        //                 return NULL;
+        //         }
 
-        /* LAB 4 TODO END */
-        return thread;
+        // }
+        
+        // /* LAB 4 TODO END */
+        // return thread;
+
+        /* 首先检查CPU 核心的rr_ready_queue是否为空
+	 * 如果是，rr_choose_thread返回CPU 核心自己的空闲线程 
+	 */
+	u32 cpu_id = smp_get_cpu_id();
+	if (list_empty(&(rr_ready_queue_meta[cpu_id].queue_head)))
+	{
+		return &(idle_threads[cpu_id]);
+	}
+
+	/*
+	 * 如果没有，它将选择rr_ready_queue的队首
+	 * 并调用rr_sched_dequeue()使该队首出队，然后返回该队首
+	 */
+	struct thread *chosen_thread = list_entry(rr_ready_queue_meta[cpu_id].queue_head.next, struct thread, ready_queue_node);
+	if (rr_sched_dequeue(chosen_thread) < 0)
+	{
+		return NULL;
+	}
+	return chosen_thread;
 }
+
 
 /*
  * Lab4
@@ -103,7 +212,7 @@ struct thread *rr_sched_choose_thread(void)
 static inline void rr_sched_refill_budget(struct thread *target, u32 budget)
 {
         /* LAB 4 TODO BEGIN */
-
+        target->thread_ctx->sc->budget = budget;
         /* LAB 4 TODO END */
 }
 
@@ -124,12 +233,69 @@ static inline void rr_sched_refill_budget(struct thread *target, u32 budget)
  */
 int rr_sched(void)
 {
-        /* LAB 4 TODO BEGIN */
+        // if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->sc)
+        //         kdebug("current thread: %lx, budget: %d\n", current_thread, current_thread->thread_ctx->sc->budget);
 
-        /* LAB 4 TODO END */
+        // kdebug("----------------\n");
+        // 对当前线程的处理
+        if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->thread_exit_state == TE_EXITING) {
+                //处理退出进程，不将其加入调度队列
+                kdebug("exit thread: %lx budget: %d\n", current_thread, current_thread->thread_ctx->sc->budget);
+                current_thread->thread_ctx->thread_exit_state = TE_EXITED;
+                current_thread->thread_ctx->state = TS_EXIT;
+        } else if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->state == TS_WAITING) {
+                // 线程已加入等待队列，不将其加入调度队列
+                kdebug("waiting thread: %lx thread exit state: %d budget: %d\n", current_thread, current_thread->thread_ctx->thread_exit_state, current_thread->thread_ctx->sc->budget);
+        } else {
+                if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->sc && current_thread->thread_ctx->sc->budget != 0) {
+                        // budget != 0, 不调度直接返回
+                        kdebug("return thread: %lx thread exit state: %d budget: %d\n", current_thread, current_thread->thread_ctx->thread_exit_state, current_thread->thread_ctx->sc->budget);
+                        return 0;
+                } else if (current_thread && current_thread->thread_ctx && current_thread->thread_ctx->sc && current_thread->thread_ctx->sc->budget == 0) {
+                        // budget == 0, 调度
+                        // kdebug("sched thread: %lx thread exit state: %d budget: %d\n", current_thread, current_thread->thread_ctx->thread_exit_state, current_thread->thread_ctx->sc->budget);
+                        rr_sched_enqueue(current_thread);
+                }
+        }
+        // kdebug("----------------\n");
+        
+        
+        // else if (current_thread) {
+                
+        // }
+        
+	/*
+	 * 首先检查当前是否正在运行某个线程
+	 * 如果是，它将调用rr_sched_enqueue()将线程添加回rr_ready_queue
+	 * rr_ready_queue 里面是不运行的线程哦
+	 */
+	// if (current_thread != NULL)
+	// {
+	// 	rr_sched_enqueue(current_thread);
+	// }
 
-        return 0;
+	struct thread *target_thread;
+	if ((target_thread = rr_sched_choose_thread()) == NULL)
+	{
+		return -EINVAL;
+	}
+
+	/* resetting thread's budget */
+        // 要在此时设budget，因为IDLE线程不会入队
+        if (target_thread->thread_ctx->type == TYPE_IDLE) {
+                // 将idle线程的budget设为0，防止有其他线程可调度时idle占用cpu
+                rr_sched_refill_budget(target_thread, 0);
+        } else {
+                rr_sched_refill_budget(target_thread, DEFAULT_BUDGET);
+        }
+	
+
+        // kdebug("after sched\n");
+        // rr_top();
+
+	return switch_to_thread(target_thread);
 }
+
 
 int rr_sched_init(void)
 {
@@ -174,7 +340,7 @@ int rr_sched_init(void)
                 idle_threads[i].vmspace = idle_vmspace;
 
                 /* Add idle_threads to the threads list */
-                list_add(&idle_threads[i].node, &idle_cap_group->thread_list);
+                list_add(&idle_threads[i].node, &idle_cap_group->thread_list, false);
         }
         kdebug("Scheduler initialized. Create %d idle threads.\n", i);
 
@@ -191,6 +357,8 @@ void rr_top(void)
         struct cap_group *cap_group_buf[MAX_CAP_GROUP_BUF] = {0};
         unsigned int cap_group_num = 0;
         int i = 0;
+
+        // printk("cap_group_num: %d\n", cap_group_num);
 
         printk("\n*****CPU RQ Info*****\n");
         for (cpuid = 0; cpuid < PLAT_CPU_NUM; cpuid++) {
@@ -232,6 +400,7 @@ void rr_top(void)
                 }
                 printk("\n");
         }
+        // printk("cap_group_num: %d\n", cap_group_num);
 
         printk("\n*****CAP GROUP Info*****\n");
         for (i = 0; i < cap_group_num; i++) {

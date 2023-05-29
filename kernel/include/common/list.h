@@ -26,18 +26,28 @@ static inline void init_list_head(struct list_head *list)
         list->prev = list;
 }
 
-static inline void list_add(struct list_head *new, struct list_head *head)
+static inline void list_add(struct list_head *new, struct list_head *head, bool flag)
 {
+        // if (head == NULL) kdebug("HEAD NULL\n");
+        // if (new == NULL) kdebug("NEW NULL\n");
+        // if (flag) kdebug("222\n");
         new->next = head->next;
+        // if (flag) kdebug("222\n");
         new->prev = head;
+        // if (flag) kdebug("222\n");
+        // if (flag) kdebug("%lx\n", new);
+        // if (flag) kdebug("%lx\n", head->next->prev);
+        
         head->next->prev = new;
+        // if (flag) kdebug("222\n");
         head->next = new;
+        // if (flag) kdebug("222\n");
 }
 
 static inline void list_append(struct list_head *new, struct list_head *head)
 {
         struct list_head *tail = head->prev;
-        return list_add(new, tail);
+        return list_add(new, tail, false);
 }
 
 static inline void list_del(struct list_head *node)

@@ -1,0 +1,33 @@
+digraph G {
+    subgraph cluster_a {
+        label="kernel mode"
+        create_root_thread;
+        load_binary;
+        "set_ctx(尤其是pc)";
+        sched;
+    }
+
+    subgraph cluster_b {
+        label="user mode"
+        program_entry;
+        _start_c;
+        "配置argc/argv,调用main";
+        __chcore_sys_thread_exit;
+        main;
+    }
+
+    subgraph cluster_c {
+        label="kernel mode"
+        thread_exit;
+    }
+
+    create_root_thread -> load_binary
+    load_binary -> "set_ctx(尤其是pc)"
+    "set_ctx(尤其是pc)" -> sched
+    sched -> program_entry
+    program_entry -> _start_c [label="库函数"]
+
+    _start_c -> "配置argc/argv,调用main" -> main
+    _start_c -> __chcore_sys_thread_exit
+    __chcore_sys_thread_exit -> thread_exit [label="syscall"]
+}

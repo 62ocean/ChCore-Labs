@@ -66,6 +66,7 @@ int create_pmo(u64 size, u64 type, struct cap_group *cap_group,
                 goto out_free_obj;
 
         cap = cap_alloc(cap_group, pmo, 0);
+        //为什么pmo也要加入到cap_group？
         if (cap < 0) {
                 r = cap;
                 goto out_free_obj;

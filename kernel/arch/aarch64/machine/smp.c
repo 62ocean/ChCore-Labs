@@ -36,7 +36,7 @@ void enable_smp_cores(paddr_t boot_flag)
                  * _start. Then, what's the flag?
                  */
                 /* LAB 4 TODO BEGIN */
-
+                secondary_boot_flag[i] = 1;
                 /* LAB 4 TODO END */
 
                 flush_dcache_area((u64)secondary_boot_flag,
@@ -48,7 +48,10 @@ void enable_smp_cores(paddr_t boot_flag)
                  * before activating the next one
                  */
                 /* LAB 4 TODO BEGIN */
-
+                while (cpu_status[i] == cpu_hang) {
+                        // kdebug("i: %d status: %d\n", i, cpu_status[i]);
+                        // asm volatile("wfe");
+                }
                 /* LAB 4 TODO END */
                 if (cpu_status[i] == cpu_run)
                         kinfo("CPU %d is active\n", i);
@@ -59,6 +62,8 @@ void enable_smp_cores(paddr_t boot_flag)
         kinfo("All %d CPUs are active\n", PLAT_CPU_NUM);
         init_ipi_data();
 }
+
+
 
 inline u32 smp_get_cpu_id(void)
 {

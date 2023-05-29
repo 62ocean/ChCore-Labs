@@ -139,6 +139,7 @@ u64 switch_context(void)
         struct thread_ctx *target_ctx;
 
         target_thread = current_thread;
+        // kdebug("mmm\n");
         BUG_ON(!target_thread);
         BUG_ON(!target_thread->thread_ctx);
 
@@ -146,14 +147,17 @@ u64 switch_context(void)
 
         if (target_thread->prev_thread == THREAD_ITSELF)
                 return (u64)target_ctx;
+        // kdebug("mmm\n");
 
         /* TYPE_TESTS threads do not have vmspace. */
         if (target_thread->thread_ctx->type != TYPE_TESTS) {
                 BUG_ON(!target_thread->vmspace);
                 switch_thread_vmspace_to(target_thread);
         }
+        // kdebug("mmm\n");
 
         arch_switch_context(target_thread);
+        // kdebug("mmm\n");
 
         return (u64)target_ctx;
 }
@@ -165,7 +169,10 @@ u64 switch_context(void)
 void sched_handle_timer_irq(void)
 {
         /* LAB 4 TODO BEGIN */
-
+        if (current_thread != NULL && current_thread->thread_ctx->sc->budget > 0)
+	{
+		current_thread->thread_ctx->sc->budget--;
+	}
         /* LAB 4 TODO END */
 }
 
@@ -174,7 +181,14 @@ void sched_handle_timer_irq(void)
 void sys_yield(void)
 {
         /* LAB 4 TODO BEGIN */
-
+        if(current_thread && current_thread->thread_ctx)
+		current_thread->thread_ctx->sc->budget = 0;
+        // kdebug("before yield\n");
+        // sched_top();
+        sched();
+        // kdebug("after yield\n");
+        // sched_top();
+        eret_to_thread(switch_context()); 
         /* LAB 4 TODO END */
         BUG("Should not return!\n");
 }

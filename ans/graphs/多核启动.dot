@@ -1,0 +1,25 @@
+digraph pic { 
+  // _start -> primary -> init_c 
+  // _start -> wait_for_bss_clear -> wait_until_smp_enabled -> secondary_init_c
+
+  // init_c -> clear_bss -> early_uart_init -> wakeup_other_cores -> init_boot_pt -> el1_mmu_activate -> start_kernel
+  // secondary_init_c -> el1_mmu_activate -> secondary_cpu_boot
+
+  _start -> init_c [label = "primary"]
+  _start -> secondary_init_c [label="secondary"]
+
+  init_c -> clear_bss
+  init_c -> early_uart_init
+  init_c -> wakeup_other_cores
+  init_c -> init_boot_pt
+  init_c -> el1_mmu_activate
+  init_c -> start_kernel [label="secondary_boot_flag"]
+
+  secondary_init_c -> el1_mmu_activate
+  secondary_init_c -> secondary_cpu_boot [label="cpuid"]
+
+  start_kernel -> main [label="boot_flag"]
+  secondary_cpu_boot -> secondary_start
+
+  main -> enable_smp_cores [label="boot_flag"]
+}

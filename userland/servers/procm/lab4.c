@@ -87,9 +87,10 @@ static void *routine(void *arg)
 
         /* Lab4 specific, remove in lab5 */
         spawn("/user.bin", &cap); /* Test spawn function */
-        printf("before reg server!\n");
+        // __chcore_sys_yield();
+        // printf("before reg server!\n");
         ipc_register_server(lab4_test_ipc_dispatch);
-        printf("reg server return!\n");
+        // printf("reg server return!\n");
         spawn("/ipc_client.bin", &cap); /* Test IPC */
         /* End Lab4 specific */
 

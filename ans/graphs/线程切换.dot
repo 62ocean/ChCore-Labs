@@ -1,0 +1,10 @@
+digraph G {
+    user_program1 -> syscall [label="进入kernel态"]
+    syscall -> sched 
+
+    sched -> switch_to_thread [label="选择下一个thread"]
+    switch_to_thread -> switch_context [label="更改current_thread和thread状态"]
+    switch_context -> eret_to_thread [label="切换ctx"]
+
+    eret_to_thread -> user_program2 [label="返回user态"]
+}
