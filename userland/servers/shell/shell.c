@@ -335,6 +335,7 @@ int run_cmd(char *cmdline)
 	// printf("1111111 %s\n",cmdline);
 	chcore_console_printf("%s\n",cmdline);
 	chcore_procm_spawn(cmdline, &cap);
+	while (true);
 	/* LAB 5 TODO END */
 	return 0;
 }
