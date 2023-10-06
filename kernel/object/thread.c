@@ -118,6 +118,11 @@ static u64 load_binary(struct cap_group *cap_group, struct vmspace *vmspace,
                         seg_map_sz = vaddr_end - vaddr_start;
                         // 创建所需大小的pmo，PMO_DATA类型马上分配物理内存空间
                         ret = create_pmo(seg_map_sz, PMO_DATA, cap_group, &pmo);
+                        if (ret < 0) {
+                            r = ret;
+                            goto out_free_cap;
+                        }
+                        pmo_cap[i] = ret;
                         // 将elf文件中的内容拷贝到物理内存空间中
                         u64 start_offset = p_vaddr - vaddr_start;
                         char *pmo_start =
