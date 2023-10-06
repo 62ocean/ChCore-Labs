@@ -4,6 +4,23 @@ This is the repository of ChCore labs in SE315, 2022 Spring.
 
 It includes a series of labs in which I completed some components or code snippets of **the microkernel operating system ChCore**. These labs provided me with a deep understanding of the operating system's principles and how it functions.
 
+## Contents
+- [ChCore](#chcore)
+  - [Contents](#contents)
+  - [Labs](#labs)
+    - [Lab1: Machine Bootup](#lab1-machine-bootup)
+    - [Lab2: Memory Management](#lab2-memory-management)
+    - [Lab3: Processes, Threads, and Exception Handling](#lab3-processes-threads-and-exception-handling)
+    - [Lab4: Multi-Core, Multi-Process, Scheduling, and IPC](#lab4-multi-core-multi-process-scheduling-and-ipc)
+    - [Lab5: File System and SHELL](#lab5-file-system-and-shell)
+    - [Lab6: Device Drivers and Persistence](#lab6-device-drivers-and-persistence)
+  - [Build](#build)
+  - [Emulate](#emulate)
+  - [Debug with GBD](#debug-with-gbd)
+  - [Grade](#grade)
+  - [Other](#other)
+
+
 ## Labs
 
 ### Lab1: Machine Bootup
