@@ -1,6 +1,6 @@
 # ChCore
 
-This is the repository of ChCore labs in SE315, 2022 Spring.
+This is the repository of ChCore labs in SE315, 2023 Spring.
 
 It includes a series of labs in which I completed some components or code snippets of **the microkernel operating system ChCore**. These labs provided me with a deep understanding of the operating system's principles and how it functions.
 
